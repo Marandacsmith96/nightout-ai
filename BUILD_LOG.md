@@ -240,4 +240,46 @@ losing what they didn't ask to change.
 
 ---
 
-*(Phase 6 — full test matrix + docs + polish — starts next.)*
+## Phase 6 — Tests, Docs & Polish ✅ *(done)*
+
+**Goal:** make it presentation-ready: a real test story, real docs, and a
+script you can present from.
+
+### What was built
+- **49 automated tests** (backends, offline, ~27 s):
+  - schema validation matrix (group size/budget bounds, **time & date format
+    patterns**, after-midnight end times, venue/price-label rules)
+  - AI parser robustness (fenced JSON, prose-wrapped JSON, garbage → None)
+  - consistency invariants on every generated itinerary: **no duplicate
+    venues, chronological non-overlapping times, budget lines sum to total,
+    total never exceeds the cap, demo labeling always present, unrequested
+    kinds never appear, time-window overflows reported not crashed**
+  - endpoint tests (health, venues, travel, planner, editor)
+- **README rewritten**: features table, architecture + three-layer honesty
+  design, quickstart, config/key guide, API reference, project layout, scope.
+- **docs/DEMO_SCRIPT.md**: a 4-minute live-demo walkthrough with backup
+  answers for the presentation.
+- **Polish**: favicon (🌙), theme-color meta.
+
+### Bugs found & fixed
+1. **Dates and times were unvalidated at the API boundary** (a request with
+   `start_time: "6pm"` sailed through). The new schema matrix caught it;
+   `date`/`start_time`/`end_time` now have strict patterns.
+2. The invariant suite initially ran 4 minutes (live AI per call); stubbing
+   the AI to the deterministic path cut it to ~27 s without weakening the
+   invariants (they test the app's consistency, not the model's taste).
+
+### Verified
+- 49/49 tests green, frontend builds clean, both servers live-verified,
+  repo pushed to **github.com/Marandacsmith96/nightout-ai** (public `main`).
+
+### Final state of the project
+A complete, working application: honest place retrieval (live-ready, labeled
+demo fallback), validated AI itinerary generation, conversational edits that
+preserve what you didn't ask to change, budget guarantees, maps, save/share,
+49 tests, a README that documents the whole thing, and a demo script ready
+for an MBA presentation. Git history tells the whole story in 8 commits.
+
+---
+
+*— End of the build log. 🌙 Less planning. More living.*
