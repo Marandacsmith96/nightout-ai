@@ -109,3 +109,21 @@ class Itinerary(BaseModel):
     demo: bool = False
     demo_note: str = ""
     edits: list[str] = []
+
+
+class EditRequest(BaseModel):
+    """A conversational change to an existing itinerary."""
+    instruction: str = Field(min_length=1, max_length=500)
+    request: PlanRequest  # current plan request (may have been edited before)
+    itinerary: Itinerary  # the itinerary as currently displayed
+    locked_indices: list[int] = []
+
+
+class EditResponse(BaseModel):
+    itinerary: Itinerary
+    reply: str
+
+
+class RegenerateRequest(BaseModel):
+    request: PlanRequest
+    locked_indices: list[int] = []

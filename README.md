@@ -16,8 +16,8 @@ Built for a graduate Generative AI course (MBAX 6418).
 | 1 | Project setup, homepage, planning form, UI kit, responsive theme | ✅ Done |
 | 2 | FastAPI backend, Google Places retrieval, demo-mode fallback | ✅ Done |
 | 3 | AI itinerary generation, schema validation, itinerary UI | ✅ Done |
-| 4 | Conversational itinerary editing, stop swap, cost/timing recalculation | ⏳ Next |
-| 5 | Map + timeline, save/share | ⏳ |
+| 4 | Conversational itinerary editing, stop swap, cost/timing recalculation | ✅ Done |
+| 5 | Map + timeline, save/share | ⏳ Next |
 | 6 | Tests, docs, polish | ⏳ |
 
 See `BUILD_LOG.md` for the development story.

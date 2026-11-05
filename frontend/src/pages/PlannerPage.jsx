@@ -1,15 +1,18 @@
 import { useRef, useState } from "react";
 import PlannerForm from "../components/PlannerForm.jsx";
 import ItineraryView from "../components/ItineraryView.jsx";
+import ChatPanel from "../components/ChatPanel.jsx";
 import { LoadingOverlay } from "../components/kit.jsx";
 import { api } from "../api/client.js";
-import { formatTime, summarizeNight } from "../lib/nightOptions.js";
+import { summarizeNight } from "../lib/nightOptions.js";
 
 export default function PlannerPage() {
   const [plan, setPlan] = useState(null);
   const [generating, setGenerating] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [itinerary, setItinerary] = useState(null);
   const [error, setError] = useState(null);
+  const [locked, setLocked] = useState([]); // stop indices
   const resultsRef = useRef(null);
 
   function scrollToResults() {
@@ -19,6 +22,7 @@ export default function PlannerPage() {
   async function handleGenerate(payload) {
     setGenerating(true);
     setError(null);
+    setLocked([]);
     try {
       const result = await api.generateNight(payload);
       setItinerary(result);
@@ -30,9 +34,38 @@ export default function PlannerPage() {
     }
   }
 
-  // "Regenerate the entire night": same inputs, fresh call.
+  /** Send a conversational edit; returns the assistant's reply text. */
+  async function handleEdit(instruction) {
+    if (!plan || !itinerary) return "";
+    setEditing(true);
+    try {
+      const res = await api.editNight({
+        instruction,
+        request: plan,
+        itinerary,
+        lockedIndices: locked,
+      });
+      setItinerary(res.itinerary);
+      return res.reply || "Done!";
+    } catch (err) {
+      return `That change didn't go through (${err.message}). Try a different wording?`;
+    } finally {
+      setEditing(false);
+    }
+  }
+
+  function handleSwap(index) {
+    const stop = itinerary?.stops[index];
+    const kind = stop ? stop.kind : "this stop";
+    return handleEdit(`Swap stop ${index + 1} (${kind}) for a different venue`);
+  }
+
   function handleRegenerate() {
-    if (plan) handleGenerate(plan);
+    return handleEdit("Replan the entire night from scratch, keeping the same preferences");
+  }
+
+  function toggleLock(index) {
+    setLocked((prev) => (prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]));
   }
 
   return (
@@ -81,7 +114,15 @@ export default function PlannerPage() {
 
       {itinerary ? (
         <section ref={resultsRef} style={{ marginTop: 34 }} className="panel">
-          <ItineraryView itinerary={itinerary} onRegenerate={handleRegenerate} busy={generating} />
+          <ItineraryView
+            itinerary={itinerary}
+            onRegenerate={handleRegenerate}
+            busy={generating || editing}
+            onSwap={handleSwap}
+            lockedIndices={locked}
+            onToggleLock={toggleLock}
+          />
+          <ChatPanel onSend={handleEdit} busy={editing || generating} />
         </section>
       ) : null}
 

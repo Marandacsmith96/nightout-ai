@@ -184,6 +184,76 @@ def _budget(request: PlanRequest, stops: list[ItineraryStop], transport: str) ->
     )
 
 
+async def compute_stops(
+    request: PlanRequest, ordered_picks: list[dict], pools: dict[str, Venue]
+) -> tuple[list[ItineraryStop], list[str]]:
+    """Turn ordered picks (venue ids) into a timed schedule with travel gaps.
+
+    Shared by generation and by the editor so edits always recalculate the
+    same way: start time, per-kind durations, travel between stops, and a note
+    whenever a stop cannot fit before the requested end time.
+    """
+    start_min, end_min = _clock_window(request)
+    mode = request.transport.lower()
+    stops: list[ItineraryStop] = []
+    clock = start_min
+    prev_venue: Venue | None = None
+    notes: list[str] = []
+
+    for pick in ordered_picks:
+        venue = pools[pick["venue_id"]]
+        travel, travel_mode, travel_src = await _travel_to_previous(prev_venue, venue, mode)
+        if travel:
+            clock += travel
+        duration = KIND_DURATION_MIN.get(pick["kind"], 90)
+        stop_start, stop_end = clock, clock + duration
+        if stop_start >= end_min:
+            notes.append(f"{pick['kind']} skipped — not enough time before {request.end_time}.")
+            continue
+        if stop_end > end_min:
+            # The stop cannot complete before the requested end time: skip it
+            # rather than presenting an impossible schedule.
+            notes.append(
+                f"{pick['kind']} skipped — it would end after {request.end_time}."
+            )
+            continue
+        stops.append(
+            ItineraryStop(
+                index=len(stops) + 1,
+                kind=pick["kind"],
+                title=venue.name,
+                start=_from_minutes(stop_start),
+                end=_from_minutes(stop_end),
+                venue=venue,
+                note=pick.get("reason", ""),
+                travel_from_previous_min=travel,
+                travel_from_previous_mode=travel_mode,
+                travel_from_previous_source=travel_src,
+                cost_per_person=venue.cost_estimate_per_person,
+                cost_verified=venue.price_verified,
+            )
+        )
+        prev_venue = venue
+        clock = stop_end
+
+    return stops, notes
+
+
+def trim_to_budget(request: PlanRequest, stops: list[ItineraryStop], notes: list[str]) -> BudgetSummary:
+    """Strict-budget guarantee: never present a plan whose total exceeds the
+    per-person cap. Trim trailing (least-essential) stops first — dinner
+    survives, drinks/dessert go — and say so honestly in the edit notes."""
+    budget = _budget(request, stops, request.transport)
+    while budget.per_person_total > request.budget and len(stops) > 1:
+        dropped = stops.pop()
+        notes.append(
+            f"Removed the {dropped.kind} stop ({dropped.title}) to stay within "
+            f"the ${request.budget}/person budget."
+        )
+        budget = _budget(request, stops, request.transport)
+    return budget
+
+
 async def generate(request: PlanRequest) -> Itinerary:
     pools = await _retrieve_candidates(request)
 
@@ -215,54 +285,8 @@ async def generate(request: PlanRequest) -> Itinerary:
     if not clean:
         clean = _deterministic_fallback(request, pools)
 
-    start_min, end_min = _clock_window(request)
-    mode = request.transport.lower()
-    stops: list[ItineraryStop] = []
-    clock = start_min
-    prev_venue: Venue | None = None
-    notes: list[str] = []
-
-    for i, pick in enumerate(clean):
-        venue = pools[pick["venue_id"]]
-        travel, travel_mode, travel_src = await _travel_to_previous(prev_venue, venue, mode)
-        if travel:
-            clock += travel
-        duration = KIND_DURATION_MIN.get(pick["kind"], 90)
-        stop_start, stop_end = clock, clock + duration
-        if stop_start >= end_min:
-            notes.append(f"{pick['kind']} skipped — not enough time before {request.end_time}.")
-            continue
-        stops.append(
-            ItineraryStop(
-                index=len(stops) + 1,
-                kind=pick["kind"],
-                title=venue.name,
-                start=_from_minutes(stop_start),
-                end=_from_minutes(stop_end),
-                venue=venue,
-                note=pick.get("reason", ""),
-                travel_from_previous_min=travel,
-                travel_from_previous_mode=travel_mode,
-                travel_from_previous_source=travel_src,
-                cost_per_person=venue.cost_estimate_per_person,
-                cost_verified=venue.price_verified,
-            )
-        )
-        prev_venue = venue
-        clock = stop_end
-
-    budget = _budget(request, stops, request.transport)
-
-    # Strict-budget guarantee: never present a plan whose total exceeds the
-    # per-person cap. Trim trailing (least-essential) stops first — dinner
-    # survives, drinks/dessert go — and say so honestly in the edit notes.
-    while budget.per_person_total > request.budget and len(stops) > 1:
-        dropped = stops.pop()
-        notes.append(
-            f"Removed the {dropped.kind} stop ({dropped.title}) to stay within "
-            f"the ${request.budget}/person budget."
-        )
-        budget = _budget(request, stops, request.transport)
+    stops, notes = await compute_stops(request, clean, pools)
+    budget = trim_to_budget(request, stops, notes)
 
     return Itinerary(
         id=uuid.uuid4().hex[:8],

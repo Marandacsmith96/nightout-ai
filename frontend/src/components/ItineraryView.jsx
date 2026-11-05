@@ -18,7 +18,7 @@ const KIND_LABEL = {
   "something unexpected": "✨ Something unexpected",
 };
 
-export default function ItineraryView({ itinerary, onRegenerate, busy }) {
+export default function ItineraryView({ itinerary, onRegenerate, busy, onSwap, lockedIndices = [], onToggleLock }) {
   const demo = itinerary?.demo;
   return (
     <section className="itinerary">
@@ -47,6 +47,7 @@ export default function ItineraryView({ itinerary, onRegenerate, busy }) {
         {itinerary.stops.map((stop, i) => {
           const v = stop.venue;
           const mapsUrl = v?.google_maps_url?.replace(/&amp;/g, "&");
+          const locked = lockedIndices.includes(i);
           return (
             <div key={stop.index} className="stop">
               <div className="stop-dot">{i + 1}</div>
@@ -57,7 +58,9 @@ export default function ItineraryView({ itinerary, onRegenerate, busy }) {
                     {formatTime(stop.start)} – {formatTime(stop.end)}
                   </span>
                 </div>
-                <div className="stop-name">{stop.title}</div>
+                <div className="stop-name">
+                  {stop.title} {locked ? <span title="Locked — kept when regenerating">🔒</span> : null}
+                </div>
                 <div className="stop-address">
                   <span>📍 {v?.address || "address unknown"}</span>
                   {mapsUrl ? (
@@ -100,6 +103,23 @@ export default function ItineraryView({ itinerary, onRegenerate, busy }) {
                     ) : null}
                   </div>
                 </div>
+                {onSwap ? (
+                  <div className="stop-actions">
+                    <button type="button" className="mini-btn" onClick={() => onSwap(i)} disabled={busy}>
+                      🔁 Swap this stop
+                    </button>
+                    {onToggleLock ? (
+                      <button
+                        type="button"
+                        className={`mini-btn ${locked ? "on" : ""}`}
+                        onClick={() => onToggleLock(i)}
+                        disabled={busy}
+                      >
+                        {locked ? "🔓 Unlock" : "🔒 Lock"}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
           );

@@ -159,4 +159,54 @@ itinerary with actual venues — and render it beautifully.
 
 ---
 
-*(Phase 4 — conversational editing — starts next.)*
+## Phase 4 — Interactive AI Modifications ✅ *(done)*
+
+**Goal:** let users change the plan conversationally — or stop by stop — without
+losing what they didn't ask to change.
+
+### What was built
+- **Edit-intent AI** (`ai.interpret_edit`): interprets a natural-language
+  instruction into ONE small structured op — `replace` / `add` / `remove` /
+  `constraints` / `replan` — with a JSON contract and the same retry + honesty
+  rules as generation.
+- **Editor service** (`services/editor.py`) applies intents deterministically:
+  - `replace`: fresh candidates retrieved for that stop's kind (honoring
+    preferences like "cheaper", excluding current venues), AI picks, only that
+    stop changes.
+  - `add`: a new stop of the requested kind is inserted before drinks/dessert.
+  - `remove`: only that stop is dropped.
+  - `constraints`: **dietary changes re-pick venues; time/budget/transport
+    changes re-schedule the SAME venues** — nothing the user didn't ask to
+    change is thrown away.
+  - `replan`: full rebuild **with locked stops forced back into place**.
+- **Endpoints**: `POST /api/plan/edit`, `POST /api/plan/regenerate`.
+- **Frontend**: AI chat panel beside the itinerary (suggested commands + free
+  text + typing indicator + friendly replies), **Swap This Stop** and **Lock**
+  buttons on every stop card; Regenerate respects locks.
+- Schedule + budget always recomputed through the same planner helpers, so
+  numbers never drift from the shown venues.
+
+### Verified (live E2E, real AI)
+- "Swap the drinks stop for dessert" → only the drinks stop changed.
+- "We want to finish by 10 PM now" → dessert kept but dropped for schedule,
+  night ends 21:32 ≤ 22:00.
+- "Make dinner cheaper" → dinner $20 → $18, everything else untouched.
+- 20 pytest tests green.
+
+### Bugs found & fixed
+1. **Constraint edits silently re-picked everything** (a replan threw away an
+   earlier swap). Fixed: schedule-affecting constraints now preserve venues.
+2. **Stops could end past the requested end time.** `compute_stops` now skips
+   any stop that cannot COMPLETE before the end time, with an explanatory note.
+3. Test-only fix: the "cheaper" filter test corrected to exclude the current
+   venue (matching the app's real contract).
+
+### Lessons learned
+- Interpreting intent is where the model adds value; APPLYING it must be
+  deterministic code with invariants — that split keeps the product honest.
+- "Preserve what wasn't asked to change" is a rule you have to encode in the
+  service, not something a prompt alone can guarantee.
+
+---
+
+*(Phase 5 — map + timeline + save/share — starts next.)*

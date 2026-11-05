@@ -34,6 +34,18 @@ export const api = {
   },
   // Phase 3 wires this to real generation; kept here so the frontend contract is stable.
   async generateNight(payload) {
-    return request("/api/generate", { method: "POST", body: JSON.stringify(payload) });
+    return request("/api/plan/generate", { method: "POST", body: JSON.stringify(payload) });
+  },
+  // Phase 4: conversational edits + locked regeneration.
+  async editNight({ instruction, request, itinerary, lockedIndices }) {
+    return request("/api/plan/edit", {
+      method: "POST",
+      body: JSON.stringify({
+        instruction,
+        request,
+        itinerary,
+        locked_indices: lockedIndices ?? [],
+      }),
+    });
   },
 };
