@@ -209,4 +209,35 @@ losing what they didn't ask to change.
 
 ---
 
-*(Phase 5 — map + timeline + save/share — starts next.)*
+## Phase 5 — Map, Save & Share ✅ *(done)*
+
+**Goal:** see the night on a map, keep it, and hand it to the group chat.
+
+### What was built
+- **Mini-map ("your night at a glance")**: a dependency-free SVG view that
+  plots every stop on its real latitude/longitude with numbered markers and a
+  route line — works in demo mode, no API key — plus a **"View full map"**
+  link that opens Google Maps with ALL stops pre-loaded as a directions route.
+- **Save My Night**: itineraries persist in `localStorage` with a load/delete
+  list in the side panel (up to 20 saved).
+- **Share**:
+  - **Copy for group chat** — a clean, formatted text itinerary
+    (times, addresses, costs, Maps links) ready to paste into any messaging app.
+  - **Share link** — the whole plan is packed into the URL fragment; opening
+    the link restores the itinerary (and its edit chat still works).
+- **Surprise Me** — generates a complete random-but-sensible plan (city, next
+  Saturday, group size, budget, activities, "Surprise me" atmosphere) with one
+  click, no other input required.
+- Small UX: header action row on the itinerary, flash confirmation toasts.
+
+### Verified
+- Frontend builds clean; share round-trip (encode → decode → same itinerary)
+  verified; backend health + frontend serving confirmed.
+
+### Design decisions
+- Map without a key: the embedded mini-map + Google Maps route link beat a
+  keyless iframe that can only show one marker.
+
+---
+
+*(Phase 6 — full test matrix + docs + polish — starts next.)*
