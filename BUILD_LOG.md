@@ -55,4 +55,53 @@ the rest of the app will be built from.
 
 ---
 
-*(Phase 2 — real location retrieval — starts next.)*
+## Phase 2 — Real Location Retrieval ✅ *(done)*
+
+**Goal:** a real backend that retrieves and normalizes venues, with travel
+times — and an honest demo mode until Google API keys exist.
+
+### What was built
+- **Data contract** (`schemas.py`): `PlanRequest`, `Venue`, `TravelEstimate`,
+  `ItineraryStop`, `BudgetSummary`, `Itinerary` — everything the AI planner
+  will emit gets validated against these before the frontend sees it.
+- **Venue catalog service** with two explicit paths:
+  - *Live:* Google Places Text Search + Place Details (addresses, coords,
+    ratings, price level, opening hours, photo references) → normalized into
+    the shared `Venue` schema with per-field `*_verified` flags.
+  - *Demo (no key):* a sample catalog of real, well-known venues for Denver,
+    Boulder, and Austin — every response carries `source: "demo"` and a
+    `source_label`, and the UI shows a demo banner. Never disguised as live.
+- **Budget & category filtering** at retrieval time (a $20/person cap never
+  proposes a $45 place).
+- **Travel-time service**: live Google Routes API when a key is set; otherwise
+  a clearly-labeled estimate (great-circle × 1.25 for street paths, walking ≈
+  1.35 m/s, driving ≈ 13 m/s, transit slower).
+- **Endpoints**: `GET /api/venues/search` and `GET /api/travel/time`,
+  both with honest source + note fields.
+- **Tests**: 10 passing (`pytest`) — health, demo labeling, category filtering,
+  budget caps, honest unknown-city handling, travel-time sanity.
+
+### Design decisions
+- **One schema for everything.** The AI (Phase 3) can only fill validated
+  structures, so fabricated fields fail loudly instead of reaching the UI.
+- **Demo data = real places, labeled as samples.** Nothing is invented; the
+  labels ("Demo sample place") do the honesty work.
+- **Fallback order matters:** live Routes first, estimate only when no key;
+  estimate results are marked `source: "estimated"`.
+
+### Bugs found & fixed
+1. **Driving time was 234 minutes for a 3 km trip.** The formula multiplied
+   seconds into minutes instead of dividing. Fixed to `distance / speed / 60`;
+   a Denver downtown→LoHi drive now estimates ~4 min, walking ~38 min.
+2. **Test asked the API for `limit=50` but the router caps at 20** (a
+   deliberate live-mode cost guard) → 422. Tests now respect the documented cap.
+
+### Lessons learned
+- The first test suite paid for itself in one run: it caught the speed-unit
+  bug and the API/test contract mismatch before the UI ever saw them.
+- Keep the demo → live switch *in one place* (the catalog service) so behavior
+  can't silently diverge.
+
+---
+
+*(Phase 3 — the AI itinerary generator — starts next.)*

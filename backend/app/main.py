@@ -1,8 +1,7 @@
-"""NightOut AI — backend entry point (Phase 1).
+"""NightOut AI — backend entry point.
 
-Phase 1 provides the API skeleton: health check + CORS. Real endpoints
-(itinerary generation, venue retrieval, itinerary edits) arrive in
-Phases 2–4.
+Phase 2 adds the venue-retrieval and travel-time endpoints; Phase 3 will add
+itinerary generation on top of these services.
 """
 from __future__ import annotations
 
@@ -10,10 +9,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.routers import travel, venues
 
 app = FastAPI(
     title="NightOut AI API",
-    version="0.1.0",
+    version="0.2.0",
     description="Backend for the NightOut AI night-out planner.",
 )
 
@@ -25,6 +25,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(venues.router)
+app.include_router(travel.router)
+
 
 @app.get("/api/health")
 def health() -> dict:
@@ -32,7 +35,7 @@ def health() -> dict:
     return {
         "status": "ok",
         "app": "NightOut AI",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "demo_mode": settings.demo_mode,
         "demo_mode_note": (
             "No Google Places key configured — venue retrieval runs in "
