@@ -1,5 +1,6 @@
 import { Button, LoadingOverlay } from "./kit.jsx";
 import { formatTime } from "../lib/nightOptions.js";
+import MiniMap from "./MiniMap.jsx";
 import "../itinerary.css";
 
 const KIND_LABEL = {
@@ -18,7 +19,18 @@ const KIND_LABEL = {
   "something unexpected": "✨ Something unexpected",
 };
 
-export default function ItineraryView({ itinerary, onRegenerate, busy, onSwap, lockedIndices = [], onToggleLock }) {
+export default function ItineraryView({
+  itinerary,
+  onRegenerate,
+  busy,
+  onSwap,
+  lockedIndices = [],
+  onToggleLock,
+  onSave,
+  onCopy,
+  onShareLink,
+  saved,
+}) {
   const demo = itinerary?.demo;
   return (
     <section className="itinerary">
@@ -38,10 +50,29 @@ export default function ItineraryView({ itinerary, onRegenerate, busy, onSwap, l
             · {itinerary.stops.length} stop{itinerary.stops.length === 1 ? "" : "s"}
           </div>
         </div>
-        <Button variant="ghost" onClick={onRegenerate}>
-          🎲 Regenerate
-        </Button>
+        <div className="itin-actions">
+          {onSave ? (
+            <Button variant="ghost" size="sm" onClick={onSave} disabled={busy}>
+              💾 {saved ? "Saved ✓" : "Save"}
+            </Button>
+          ) : null}
+          {onCopy ? (
+            <Button variant="ghost" size="sm" onClick={onCopy} disabled={busy}>
+              📋 Copy for group chat
+            </Button>
+          ) : null}
+          {onShareLink ? (
+            <Button variant="ghost" size="sm" onClick={onShareLink} disabled={busy}>
+              🔗 Share link
+            </Button>
+          ) : null}
+          <Button variant="ghost" onClick={onRegenerate} disabled={busy}>
+            🎲 Regenerate
+          </Button>
+        </div>
       </div>
+
+      <MiniMap stops={itinerary.stops} />
 
       <div className="timeline">
         {itinerary.stops.map((stop, i) => {

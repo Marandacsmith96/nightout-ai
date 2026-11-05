@@ -69,6 +69,50 @@ export function summarizeNight(p) {
   return rows;
 }
 
+/* Random-but-sensible "Surprise Me" plan — lets the app create an itinerary
+   without requiring any other input (Phase 5). */
+export const SURPRISE_CITIES = [
+  { city: "Denver", state: "CO" },
+  { city: "Boulder", state: "CO" },
+  { city: "Austin", state: "TX" },
+];
+
+export function randomSurprisePlan() {
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const base = pick(SURPRISE_CITIES);
+  const activities = ["Dinner"];
+  const extras = ["Games & arcade bars", "Casual drinks", "Live music", "Dancing", "Escape rooms", "Dessert or coffee", "Comedy shows"].filter(
+    (a) => a !== "Dinner"
+  );
+  // shuffle extras, take 2
+  for (let i = extras.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [extras[i], extras[j]] = [extras[j], extras[i]];
+  }
+  activities.push(...extras.slice(0, 2));
+
+  const saturday = new Date();
+  const day = saturday.getDay();
+  const diff = (6 - day + 7) % 7 || 7; // next Saturday (or a week out)
+  saturday.setDate(saturday.getDate() + diff);
+
+  return {
+    city: base.city,
+    state: base.state,
+    date: saturday.toISOString().slice(0, 10),
+    groupSize: 2 + Math.floor(Math.random() * 6),
+    budget: pick([30, 60, 100]),
+    startTime: "19:00",
+    endTime: pick(["22:30", "23:30", "00:30"]),
+    restrictions: [],
+    activities,
+    atmosphere: "Surprise me",
+    transport: "Walking",
+    distance: "Moderate travel between stops is okay",
+    notes: "Surprise us! Pick great spots we didn't think of.",
+  };
+}
+
 export function formatTime(t) {
   if (!t) return "—";
   const [h, m] = t.split(":").map(Number);

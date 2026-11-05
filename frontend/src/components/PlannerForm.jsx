@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Chip, Field, Stepper, BudgetSlider } from "./kit.jsx";
 import {
   ACTIVITIES, ATMOSPHERES, BUDGET_PRESETS, DISTANCE_PREFS,
-  FOOD_RESTRICTIONS, TRANSPORT, formatTime,
+  FOOD_RESTRICTIONS, TRANSPORT, formatTime, randomSurprisePlan,
 } from "../lib/nightOptions.js";
 
 const EMPTY = {
@@ -159,6 +159,16 @@ export default function PlannerForm({ onPlanChange, onGenerate }) {
 
       <div style={{ marginTop: 26 }}>
         <Button type="submit" size="lg" className="btn-block">✨ Generate My Night Out</Button>
+        <div style={{ marginTop: 10, textAlign: "center" }}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => onGenerate(randomSurprisePlan())}
+            style={{ fontSize: 13 }}
+          >
+            🎲 Surprise me — pick everything for us
+          </button>
+        </div>
         <p style={{ textAlign: "center", color: "var(--muted-2)", fontSize: 12.5, marginTop: 12 }}>
           Plan starts {p.startTime ? formatTime(p.startTime) : "—"} · ends {p.endTime ? formatTime(p.endTime) : "—"} ·
           budget ${p.budget}/person

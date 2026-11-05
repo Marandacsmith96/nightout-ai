@@ -1,10 +1,14 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PlannerForm from "../components/PlannerForm.jsx";
 import ItineraryView from "../components/ItineraryView.jsx";
 import ChatPanel from "../components/ChatPanel.jsx";
 import { LoadingOverlay } from "../components/kit.jsx";
 import { api } from "../api/client.js";
 import { summarizeNight } from "../lib/nightOptions.js";
+import {
+  copyText, decodeShare, deleteSaved, encodeShare, itineraryText,
+  loadSaved, saveNight,
+} from "../lib/share.js";
 
 export default function PlannerPage() {
   const [plan, setPlan] = useState(null);
@@ -13,7 +17,23 @@ export default function PlannerPage() {
   const [itinerary, setItinerary] = useState(null);
   const [error, setError] = useState(null);
   const [locked, setLocked] = useState([]); // stop indices
+  const [savedList, setSavedList] = useState(loadSaved());
+  const [flash, setFlash] = useState(null); // small toast-ish message
   const resultsRef = useRef(null);
+
+  // Restore a shared itinerary from the URL fragment (#...), e.g. after a friend
+  // opens a share link on this machine's browser.
+  useEffect(() => {
+    const hash = window.location.hash.replace(/^#/, "");
+    if (!hash) return;
+    const shared = decodeShare(hash);
+    if (shared?.itinerary) {
+      setPlan(shared.plan || null);
+      setItinerary(shared.itinerary);
+      setLocked([]);
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth" }), 120);
+    }
+  }, []);
 
   function scrollToResults() {
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
@@ -68,6 +88,35 @@ export default function PlannerPage() {
     setLocked((prev) => (prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]));
   }
 
+  function handleSave() {
+    const list = saveNight({ plan, itinerary });
+    setSavedList(list);
+    setFlash("Saved to your nights 💾");
+  }
+
+  function handleCopy() {
+    copyText(itineraryText(itinerary)).then((ok) =>
+      setFlash(ok ? "Copied — paste it in the group chat 📋" : "Couldn't copy — select/tap the text manually.")
+    );
+  }
+
+  function handleShareLink() {
+    const url = `${window.location.origin}${window.location.pathname}#${encodeShare({ plan, itinerary })}`;
+    copyText(url).then((ok) =>
+      setFlash(ok ? "Share link copied — anyone with this browser can open it 🔗" : "Couldn't copy the link.")
+    );
+  }
+
+  function loadSavedNight(item) {
+    setPlan(item.plan || null);
+    setItinerary(item.itinerary);
+    setLocked([]);
+    setFlash(`Loaded “${item.label}”`);
+    scrollToResults();
+  }
+
+  const currentSaved = itinerary ? savedList.some((s) => s.itinerary?.id === itinerary.id) : false;
+
   return (
     <div className="container" style={{ paddingTop: 44, paddingBottom: 30 }}>
       <h1 style={{ fontSize: "clamp(28px, 4.5vw, 40px)", fontWeight: 800, marginBottom: 6 }}>
@@ -97,6 +146,27 @@ export default function PlannerPage() {
               “{plan.notes.length > 140 ? plan.notes.slice(0, 140) + "…" : plan.notes}”
             </div>
           ) : null}
+
+          {savedList.length > 0 ? (
+            <div className="saved-nights">
+              <h4>💾 My saved nights</h4>
+              {savedList.map((s) => (
+                <div className="saved-row" key={s.itinerary.id}>
+                  <button type="button" className="saved-open" onClick={() => loadSavedNight(s)}>
+                    {s.label} · {s.itinerary.stops.length} stops
+                  </button>
+                  <button
+                    type="button"
+                    className="saved-del"
+                    title="Delete"
+                    onClick={() => setSavedList(deleteSaved(s.itinerary.id))}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </aside>
       </div>
 
@@ -121,10 +191,16 @@ export default function PlannerPage() {
             onSwap={handleSwap}
             lockedIndices={locked}
             onToggleLock={toggleLock}
+            onSave={handleSave}
+            saved={currentSaved}
+            onCopy={handleCopy}
+            onShareLink={handleShareLink}
           />
           <ChatPanel onSend={handleEdit} busy={editing || generating} />
         </section>
       ) : null}
+
+      {flash ? <div className="flash-note">✨ {flash}</div> : null}
 
       {generating && !itinerary ? (
         <LoadingOverlay title="Planning your perfect night…" sub="Picking real places that fit your group, budget, and time — this only takes a few seconds." />
