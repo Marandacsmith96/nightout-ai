@@ -13,11 +13,11 @@ class PlanRequest(BaseModel):
     """What the user tells us about their night (submitted by the form)."""
     city: str = Field(min_length=1, max_length=80)
     state: str = ""
-    date: str  # YYYY-MM-DD
+    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")  # YYYY-MM-DD
     group_size: int = Field(ge=1, le=20)
     budget: int = Field(ge=5, le=1000)  # $ per person
-    start_time: str  # HH:MM (24h)
-    end_time: str  # HH:MM (24h); may be <= start_time to mean "ends after midnight"
+    start_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")  # HH:MM (24h)
+    end_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")  # HH:MM (24h); may be <= start_time to mean "ends after midnight"
     restrictions: list[str] = []
     activities: list[str] = []
     atmosphere: str = "Casual & relaxed"
