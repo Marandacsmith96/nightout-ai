@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Environment & secrets — NEVER commit real keys
+.env
+*.local
+
+# OS / editor junk
+Thumbs.db
+desktop.ini
+.DS_Store
+.idea/
+.vscode/
+*.log
