@@ -2,6 +2,9 @@
 
 > **Less Planning. More Living.**
 
+**GitHub:** https://github.com/Marandacsmith96/nightout-ai
+&nbsp;·&nbsp; **Open the app (when running):** http://localhost:5173
+
 NightOut AI is a smart group night-out planner. Tell it your city, budget, group
 size, free time, and what you're into — it returns a complete evening itinerary
 with real places, real addresses, per-person costs, travel times, and a map.
@@ -78,8 +81,9 @@ npm install
 npm run dev        # → http://localhost:5173
 ```
 
-Open **http://localhost:5173**, hit **Plan My Night**. Without any keys the app
-runs in demo mode (the banner says so).
+**👉 Open the app: [http://localhost:5173](http://localhost:5173)** (works once
+both servers above are running), then hit **Plan My Night**. Without any keys
+the app runs in demo mode (the banner says so).
 
 ### Tests
 
