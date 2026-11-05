@@ -1,40 +1,38 @@
-/* Minimal API client for the NightOut AI backend.
-   Phase 1: only /api/health is called. Generation endpoints arrive in Phase 2+. */
+/* Minimal API client for the NightOut AI backend. */
+import { toApiPlan } from "../lib/apiPlan.js";
 
 const BASE = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
-async function request(path, options = {}, timeoutMs = 10000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(`${BASE}${path}`, {
-      headers: { "Content-Type": "application/json" },
-      ...options,
-      signal: controller.signal,
-    });
-    if (!res.ok) {
-      let detail = `HTTP ${res.status}`;
-      try {
-        const body = await res.json();
-        if (body?.detail) detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
-      } catch {
-        /* non-JSON error body — keep the status text */
+async function request(path, options = {}) {
+  const res = await fetch(`${BASE}${path}`, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  if (!res.ok) {
+    let detail = `Request failed (${res.status})`;
+    try {
+      const body = await res.json();
+      if (body?.detail) {
+        const first = Array.isArray(body.detail) ? body.detail[0] : body.detail;
+        detail = first?.msg ? `${first.msg} — ${first.loc?.[1] ?? "field"}` : String(first);
       }
-      throw new Error(detail);
+    } catch {
+      /* non-JSON error body */
     }
-    return await res.json();
-  } finally {
-    clearTimeout(timer);
+    throw new Error(detail);
   }
+  return res.json();
 }
 
 export const api = {
   async health() {
     return request("/api/health");
   },
-  // Phase 3 wires this to real generation; kept here so the frontend contract is stable.
   async generateNight(payload) {
-    return request("/api/plan/generate", { method: "POST", body: JSON.stringify(payload) });
+    return request("/api/plan/generate", {
+      method: "POST",
+      body: JSON.stringify(toApiPlan(payload)),
+    });
   },
   // Phase 4: conversational edits + locked regeneration.
   async editNight({ instruction, request, itinerary, lockedIndices }) {
@@ -42,7 +40,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({
         instruction,
-        request,
+        request: toApiPlan(request),
         itinerary,
         locked_indices: lockedIndices ?? [],
       }),

@@ -282,4 +282,29 @@ for an MBA presentation. Git history tells the whole story in 8 commits.
 
 ---
 
-*— End of the build log. 🌙 Less planning. More living.*
+## Hotfix — "Generate My Night Out" returned nothing (first real-user bug) ✅
+
+**Symptom:** clicking *Generate My Night Out* in the browser failed silently —
+the quickly-hidden error panel said "Field required".
+
+**Root cause (found via the backend log + payload reproduction):** the form
+sent `groupSize` / `startTime` / `endTime`, but the API contract (Pydantic)
+defines `group_size` / `start_time` / `end_time`. Every automated test and
+E2E script used snake_case, so the mismatch existed since Phase 3 and only a
+real browser click exposed it. The user WAS the first true integration test.
+
+**Fix:** one adapter module (`frontend/src/lib/apiPlan.js`, `toApiPlan`) is now
+the single place that maps form (camelCase) → API (snake_case). Form submit,
+Surprise Me, and the edit chat all route through it, so the two sides can't
+drift again. The API client also now reports validation errors with a readable
+message instead of a raw JSON blob.
+
+**Verified:** adapter unit-checked, mapped payload → HTTP 200 with a real
+itinerary, frontend builds. Also added a readable-error fallback so any future
+validation problem shows a plain sentence instead of a dead button.
+
+**Lesson learned:** contract tests must exercise the *actual* client payload
+shape, not just the backend's own view of it — add a fixture that replays the
+frontend's real request body.
+
+---
