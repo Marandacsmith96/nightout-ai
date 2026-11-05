@@ -1,0 +1,103 @@
+/* Itinerary timeline, stop cards, and budget box. */
+.itinerary { margin-top: 8px; }
+.itin-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.itin-header h2 { font-size: 22px; }
+.itin-meta { color: var(--muted); font-size: 13.5px; }
+
+.demo-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: var(--amber);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.timeline { position: relative; padding-left: 34px; }
+.timeline::before {
+  content: ""; position: absolute; left: 11px; top: 6px; bottom: 6px;
+  width: 2px; background: linear-gradient(180deg, var(--purple), var(--pink), rgba(255,255,255,0.08));
+  border-radius: 2px;
+}
+.stop { position: relative; margin-bottom: 16px; }
+.stop-dot {
+  position: absolute; left: -32px; top: 22px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--grad);
+  border: 3px solid var(--bg-2);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 11px; font-weight: 700;
+}
+.stop-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  transition: transform .15s ease, border-color .2s ease;
+}
+.stop-card:hover { transform: translateY(-2px); border-color: rgba(139, 92, 246, 0.45); }
+.stop-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.stop-kind {
+  font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  letter-spacing: .08em; text-transform: uppercase;
+  background: var(--grad-soft); color: var(--purple-soft);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  padding: 3px 10px; border-radius: 999px;
+}
+.stop-time { color: var(--amber); font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
+.stop-name { font-family: var(--font-display); font-size: 19px; font-weight: 700; margin: 10px 0 4px; }
+.stop-address { color: var(--muted); font-size: 13.5px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.stop-address a { color: var(--purple-soft); text-decoration: underline; text-underline-offset: 3px; }
+.stop-body { display: grid; grid-template-columns: 1fr auto; gap: 14px; margin-top: 12px; align-items: start; }
+.stop-reason { color: var(--muted); font-size: 14px; line-height: 1.55; }
+.stop-facts { display: flex; flex-direction: column; gap: 6px; min-width: 150px; }
+.fact { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+.fact span:first-child { color: var(--muted-2); }
+.fact span:last-child { font-weight: 600; text-align: right; }
+.fact .unverified { color: var(--amber); font-weight: 500; }
+.travel-line {
+  display: flex; align-items: center; gap: 8px;
+  margin: 10px 0 0 34px;
+  color: var(--muted-2); font-size: 12.5px;
+}
+.travel-line::before { content: "↳"; color: var(--purple-soft); font-size: 15px; }
+
+/* Budget box */
+.budget-box {
+  margin-top: 22px;
+  background: linear-gradient(120deg, rgba(139, 92, 246, 0.14), rgba(236, 72, 153, 0.1));
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.budget-box h3 { font-size: 16px; margin-bottom: 10px; }
+.budget-line { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; color: var(--muted); }
+.budget-line.total { border-top: 1px dashed var(--border-strong); margin-top: 6px; padding-top: 10px; color: var(--text); font-weight: 700; }
+.budget-line.remaining { color: var(--green); font-weight: 700; }
+.budget-line.over { color: var(--red); font-weight: 700; }
+.budget-note { margin-top: 10px; font-size: 12px; color: var(--muted-2); }
+
+.itin-notes { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.itin-note {
+  font-size: 13px; color: var(--amber);
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: 10px; padding: 9px 13px;
+}
+
+.error-box {
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  color: var(--red);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+  .stop-body { grid-template-columns: 1fr; }
+  .stop-facts { flex-direction: row; flex-wrap: wrap; }
+}

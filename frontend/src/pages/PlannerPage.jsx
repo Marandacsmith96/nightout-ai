@@ -1,23 +1,38 @@
 import { useRef, useState } from "react";
 import PlannerForm from "../components/PlannerForm.jsx";
+import ItineraryView from "../components/ItineraryView.jsx";
 import { LoadingOverlay } from "../components/kit.jsx";
+import { api } from "../api/client.js";
 import { formatTime, summarizeNight } from "../lib/nightOptions.js";
 
 export default function PlannerPage() {
   const [plan, setPlan] = useState(null);
   const [generating, setGenerating] = useState(false);
-  const [result, setResult] = useState(null);
+  const [itinerary, setItinerary] = useState(null);
+  const [error, setError] = useState(null);
   const resultsRef = useRef(null);
 
-  function handleGenerate(payload) {
+  function scrollToResults() {
+    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  }
+
+  async function handleGenerate(payload) {
     setGenerating(true);
-    // Phase 1: exercise the loading UI; Phase 3 replaces this with the real
-    // backend call (api.generateNight).
-    setTimeout(() => {
+    setError(null);
+    try {
+      const result = await api.generateNight(payload);
+      setItinerary(result);
+      scrollToResults();
+    } catch (err) {
+      setError(err.message || "Something went wrong. Please try again.");
+    } finally {
       setGenerating(false);
-      setResult(payload);
-      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
-    }, 1600);
+    }
+  }
+
+  // "Regenerate the entire night": same inputs, fresh call.
+  function handleRegenerate() {
+    if (plan) handleGenerate(plan);
   }
 
   return (
@@ -52,37 +67,27 @@ export default function PlannerPage() {
         </aside>
       </div>
 
-      {result ? (
+      {error ? (
         <section ref={resultsRef} style={{ marginTop: 34 }} className="panel">
-          <h2>Your night out request</h2>
-          <p className="panel-sub">Everything below was captured — the AI generator connects here in Phase 3.</p>
-          <div className="results-summary">
-            <h3>✓ Request ready — {result.city}{result.state ? ", " + result.state : ""}</h3>
-            <ul>
-              <li>
-                {new Date(result.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} ·{" "}
-                {result.groupSize} {result.groupSize === 1 ? "person" : "people"} · ${result.budget}/person
-              </li>
-              <li>
-                {formatTime(result.startTime)} – {formatTime(result.endTime)} ·{" "}
-                {result.endTime <= result.startTime ? "ends after midnight · " : ""}
-                getting around by {result.transport.toLowerCase()}
-              </li>
-              <li>Activities: {result.activities.join(", ")}</li>
-              <li>
-                Atmosphere: {result.atmosphere} · Distance: {result.distance.toLowerCase()}
-                {result.restrictions.length ? ` · Food: ${result.restrictions.join(", ")}` : ""}
-              </li>
-            </ul>
-            <div className="results-note">
-              This is the form's confirmation — the real venue search and itinerary generation (with live places,
-              budget tracking, and the edit chat) arrive in Phases 2–3.
-            </div>
-          </div>
+          <h2 style={{ marginBottom: 10 }}>Something went wrong</h2>
+          <div className="error-box">{error}</div>
+          <p style={{ color: "var(--muted)", fontSize: 13.5, margin: 0 }}>
+            Check that the backend is running (<code>uvicorn app.main:app --port 8000</code> in{" "}
+            <code>backend/</code>) and try again — or adjust your search (another city, a higher budget,
+            or different activities).
+          </p>
         </section>
       ) : null}
 
-      {generating ? <LoadingOverlay /> : null}
+      {itinerary ? (
+        <section ref={resultsRef} style={{ marginTop: 34 }} className="panel">
+          <ItineraryView itinerary={itinerary} onRegenerate={handleRegenerate} busy={generating} />
+        </section>
+      ) : null}
+
+      {generating && !itinerary ? (
+        <LoadingOverlay title="Planning your perfect night…" sub="Picking real places that fit your group, budget, and time — this only takes a few seconds." />
+      ) : null}
     </div>
   );
 }

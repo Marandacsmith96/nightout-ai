@@ -104,4 +104,59 @@ times — and an honest demo mode until Google API keys exist.
 
 ---
 
-*(Phase 3 — the AI itinerary generator — starts next.)*
+## Phase 3 — AI Itinerary Generation ✅ *(done)*
+
+**Goal:** turn the user's plan request into a real, validated, budget-checked
+itinerary with actual venues — and render it beautifully.
+
+### What was built
+- **AI service** (`services/ai.py`): OpenAI-compatible chat call
+  (`DeepSeek-V4-Flash-0731` via the course endpoint), temperature 0, thinking
+  disabled, JSON-only prompt. The model may ONLY reference candidate venue ids
+  we retrieved — it cannot invent places. Unparseable output is rejected and
+  retried (3 attempts) with the failure reason surfaced honestly.
+- **Planner orchestration** (`services/planner.py`):
+  - Retrieves a candidate pool per selected activity (budget-filtered).
+  - Asks the AI to pick stops; validates every pick against the candidate ids
+    and requested kinds (unknown ids are rejected outright).
+  - Computes the real schedule: start time, per-kind durations, travel between
+    stops (walking/driving/transit), after-midnight end times.
+  - Computes the budget summary from VENUE data — never from the model.
+  - **Strict-budget guarantee**: if the total would exceed the per-person cap,
+    trailing stops are trimmed with an honest note.
+  - Deterministic fallback (top-rated picks) when the AI is missing or fails.
+- **Endpoint**: `POST /api/plan/generate`.
+- **Frontend**: itinerary timeline (numbered stop cards with times, venue,
+  address, Maps link, cost with "est." flags, travel time, AI reason), budget
+  box with per-stop lines + remaining/over, demo badges, edit notes, error
+  panel, Regenerate button. Loading overlay wired to the real request.
+- **Credentials**: backend `.env` (git-ignored) configured with the course
+  endpoint + key — never committed, never printed.
+
+### Verified
+- 15 pytest tests green; live end-to-end call returned a 3-stop Denver night
+  (vegetarian-friendly dinner → arcade bar → tap house), $46 of $60, walking
+  times between stops, all venues from the real demo catalog.
+
+### Bugs found & fixed
+1. **AI proposal contract mismatch**: model returns `{"stops": [...]}` but the
+   planner iterated it as a list → 500. Fixed the unpacking.
+2. **Deterministic fallback could pick the same venue twice** (tag matching was
+   stricter than retrieval's). Fallback now uses the SAME category→tag map as
+   retrieval and never reuses a venue id.
+3. **Strict budgets could be exceeded in total** (each stop ≤ cap, sum > cap).
+   Added the trim-to-budget pass with an explanatory edit note.
+4. **Transient AI endpoint failure** fell back silently; now retried 3× and the
+   real reason is reported in the itinerary notes.
+
+### Lessons learned
+- Validation layers pay for themselves: the schema + id allowlist + budget
+  trim guarantee the response is honest even when the model misbehaves.
+- One test suite caught both a contracts bug and a budget invariant bug in the
+  same run — keep the invariants in tests.
+- Synthetic browser input (drive_preview) doesn't trigger React onChange —
+  verify forms with real browser input or API-level tests instead.
+
+---
+
+*(Phase 4 — conversational editing — starts next.)*

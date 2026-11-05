@@ -119,8 +119,11 @@ _CATALOG: dict[str, list[dict]] = {
     ],
 }
 
+__all__ = ["CATEGORY_TAGS", "demo_cities", "build_venue", "search_demo"]
+
 # Which venue tags satisfy which activity/category selections.
-_CATEGORY_TAGS: dict[str, set[str]] = {
+# Public so the planner's deterministic fallback uses the SAME mapping.
+CATEGORY_TAGS: dict[str, set[str]] = {
     "dinner": {"dinner", "brunch", "bbq", "burger", "latin", "italian", "eclectic"},
     "cocktail bars": {"cocktail"},
     "casual drinks": {"casual drinks", "beer"},
@@ -175,13 +178,14 @@ def search_demo(city_key: str, categories: list[str], budget: int | None, limit:
     """Demo-mode venue search: match tags to categories, apply budget, keep order."""
     city_key = (city_key or "").strip().lower()
     raw_list = _CATALOG.get(city_key) or _CATALOG.get("denver", [])
+
     matched: list[Venue] = []
     for raw in raw_list:
         tags = set(raw.get("tags", []))
         if categories:
             wanted = set()
             for c in categories:
-                wanted |= _CATEGORY_TAGS.get(c.lower(), set())
+                wanted |= CATEGORY_TAGS.get(c.lower(), set())
             if not (tags & wanted):
                 continue
         venue = build_venue(raw)
