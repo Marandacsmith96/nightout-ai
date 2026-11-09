@@ -99,7 +99,7 @@ export function randomSurprisePlan() {
   return {
     city: base.city,
     state: base.state,
-    date: saturday.toISOString().slice(0, 10),
+    date: toLocalDateStr(saturday),
     groupSize: 2 + Math.floor(Math.random() * 6),
     budget: pick([30, 60, 100]),
     startTime: "19:00",
@@ -119,4 +119,18 @@ export function formatTime(t) {
   const ampm = h >= 12 ? "PM" : "AM";
   const hh = h % 12 === 0 ? 12 : h % 12;
   return `${hh}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+/* The backend sends dates as YYYY-MM-DD. `new Date("YYYY-MM-DD")` parses that as
+   UTC midnight, so toLocaleDateString shifts it into the PREVIOUS day in US
+   timezones. These helpers force local-time parsing so the day shown is the day
+   the user picked (fix: itinerary header, saved labels, group-chat copy). */
+export function localMidnight(dateStr) {
+  return new Date(`${dateStr}T00:00:00`);
+}
+
+export function toLocalDateStr(d) {
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
 }

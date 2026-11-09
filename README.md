@@ -73,6 +73,9 @@ cp .env.example .env                                  # add keys you have (see b
 uvicorn app.main:app --port 8000
 ```
 
+> ⚠️ **Python version:** 3.9 or newer — any recent Python works (the required
+> 3.9 compatibility package is included on purpose). Check with `python3 --version`.
+
 ### Frontend (React + Vite)
 
 ```bash

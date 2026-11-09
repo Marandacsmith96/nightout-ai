@@ -10,7 +10,8 @@ REAL app running locally (backend :8000 + frontend :5173). No mockups.
 ```bash
 cd Desktop/final-project
 # terminal 1 — backend
-cd backend && .venv/Scripts/python.exe -m uvicorn app.main:app --port 8000
+cd backend && .venv/Scripts/python.exe -m uvicorn app.main:app --port 8000   # Windows
+cd backend && .venv/bin/python -m uvicorn app.main:app --port 8000           # Mac / Linux
 # terminal 2 — frontend
 cd frontend && npm run dev
 ```

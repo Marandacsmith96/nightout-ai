@@ -1,5 +1,5 @@
 import { Button, LoadingOverlay } from "./kit.jsx";
-import { formatTime } from "../lib/nightOptions.js";
+import { formatTime, localMidnight } from "../lib/nightOptions.js";
 import MiniMap from "./MiniMap.jsx";
 import "../itinerary.css";
 
@@ -42,7 +42,7 @@ export default function ItineraryView({
             {demo ? <span className="demo-chip">🧪 sample places</span> : null}
           </h2>
           <div className="itin-meta">
-            {new Date(itinerary.date).toLocaleDateString(undefined, {
+            {localMidnight(itinerary.date).toLocaleDateString(undefined, {
               weekday: "long",
               month: "long",
               day: "numeric",
