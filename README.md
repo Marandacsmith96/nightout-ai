@@ -118,6 +118,16 @@ Only `OPENAI_API_KEY` is needed for the app to feel fully "AI".
 
 All schemas live in `backend/app/schemas.py` (Pydantic v2).
 
+## 👥 Collaborating with your team
+
+The repo lives on the owner's GitHub account; teammates become **collaborators**
+and work on branches + pull requests (never straight to `main`). Full setup and
+workflow: see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+- Everyone needs their own `backend/.env` (copy `.env.example`, fill your own
+  keys) — real keys are never committed.
+- Before pushing: `pytest` (49 tests) and `npm run build` must be green.
+
 ## 📁 Project layout
 
 ```
