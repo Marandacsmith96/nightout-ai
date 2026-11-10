@@ -4,7 +4,7 @@
      needed); long links may be trimmed by some chat apps, so the formatted
      text copy is the reliable path for group chats. */
 
-import { formatTime } from "../lib/nightOptions.js";
+import { formatTime, localMidnight } from "../lib/nightOptions.js";
 
 const SAVED_KEY = "nightout-saved";
 const KIND_LABEL = {
@@ -35,7 +35,7 @@ export function saveNight({ plan, itinerary }) {
   const list = loadSaved().filter((s) => s.itinerary?.id !== itinerary.id);
   list.unshift({
     savedAt: new Date().toISOString(),
-    label: `${itinerary.city} · ${new Date(itinerary.date).toLocaleDateString()}`,
+    label: `${itinerary.city} · ${localMidnight(itinerary.date).toLocaleDateString()}`,
     plan,
     itinerary,
   });
@@ -68,7 +68,7 @@ export function itineraryText(it) {
   const lines = [];
   lines.push(`🌙 NIGHTOUT AI — ${it.city}`);
   lines.push(
-    `${new Date(it.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} · ${it.stops.length} stop(s)`
+    `${localMidnight(it.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} · ${it.stops.length} stop(s)`
   );
   lines.push("");
   it.stops.forEach((s, i) => {
