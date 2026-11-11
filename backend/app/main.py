@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import plan, travel, venues
+from app.routers import media, plan, travel, venues
 
 app = FastAPI(
     title="NightOut AI API",
@@ -28,6 +28,7 @@ app.add_middleware(
 app.include_router(venues.router)
 app.include_router(travel.router)
 app.include_router(plan.router)
+app.include_router(media.router)
 
 
 @app.get("/api/health")
@@ -39,6 +40,10 @@ def health() -> dict:
         "version": "0.3.0",
         "demo_mode": settings.demo_mode,
         "ai_configured": bool(settings.openai_api_key),
+        "media_configured": {
+            "poster": settings.flux_configured,
+            "voiceover": settings.tts_configured,
+        },
         "demo_mode_note": (
             "No Google Places key configured — venue retrieval runs in "
             "explicitly-labeled demo mode with sample places."

@@ -127,3 +127,32 @@ class EditResponse(BaseModel):
 class RegenerateRequest(BaseModel):
     request: PlanRequest
     locked_indices: list[int] = []
+
+
+# --- Phase 7: multimodal media responses ---
+
+
+class PosterResponse(BaseModel):
+    """AI-generated promo poster for an itinerary.
+
+    `available: false` is a normal, honest answer (feature not configured),
+    not an error — the UI turns it into a friendly note.
+    """
+    available: bool
+    media_type: str = ""  # e.g. image/png
+    data_b64: str = ""  # base64 payload when available
+    source: str = "not configured"  # "flux" | "not configured"
+    source_label: str = ""
+    prompt: str = ""  # the exact prompt sent (reproducible + honest)
+    note: str = ""
+
+
+class VoiceoverResponse(BaseModel):
+    """AI-generated spoken summary of an itinerary (Chatterbox TTS)."""
+    available: bool
+    media_type: str = ""  # e.g. audio/mpeg
+    data_b64: str = ""
+    source: str = "not configured"  # "chatterbox" | "not configured"
+    source_label: str = ""
+    narration: str = ""  # the exact spoken text (reproducible + honest)
+    note: str = ""
