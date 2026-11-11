@@ -19,6 +19,20 @@ demo mode that runs with zero API keys).
 
 ---
 
+## 📸 Screenshots
+
+| Homepage | Generated itinerary |
+|---|---|
+| ![Homepage](docs/screenshots/home.png) | ![Itinerary](docs/screenshots/itinerary.png) |
+
+| 🎨 AI promo poster | 🔊 AI voice-over |
+|---|---|
+| ![Promo poster](docs/screenshots/poster.png) | ![Voice-over](docs/screenshots/voiceover.png) |
+
+*More: [form](docs/screenshots/form.png), [chat edits](docs/screenshots/edits.png), [mobile](docs/screenshots/mobile.png).*
+
+---
+
 ## ✨ Features
 
 | Area | What you can do |

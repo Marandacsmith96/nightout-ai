@@ -388,3 +388,31 @@ contribution tooling that makes the branch → PR workflow frictionless.
   exact experience a fresh clone gets).
 
 ---
+
+## Hotfix — conversational edits threw in the browser: "request is not a function" ✅
+
+**Found by:** real-browser click-through QA (Issue #3) during Phase 8.
+
+**Symptom:** clicking **🔁 Swap this stop**, **🎲 Regenerate**, or sending any
+chat edit did nothing visible. Backend logs showed **zero** `/api/plan/edit`
+requests, and React state showed `editing` stuck `true`.
+
+**Root cause:** `frontend/src/api/client.js` — `editNight` destructures its
+argument as `{ instruction, request, itinerary, lockedIndices }`, and the
+`request` name **shadows the module-level `request()` fetch helper**. Every
+edit called `request("/api/plan/edit", …)` → `TypeError: request is not a
+function` → thrown before any fetch, silently swallowed (the swap/regenerate
+button paths ignore the returned error string). The API-level Phase 4 E2Es
+never caught it because they never exercised this exact client call; QA_REPORT
+had flagged Swap/Lock as "not yet browser-tested".
+
+**Fix:** rename the destructured plan to `request: plan` (one method; no other
+method shadows the helper). Verified live click-through afterwards: edit POST
+fires, venue swaps (Denver Biscuit Company → Watercourse Foods), honest
+fallback note appears when the AI's JSON is unparseable.
+
+**Lesson:** a param name that collides with a module helper is invisible to
+backend tests — the *actual* client payload path needs at least one real
+browser click-through per feature. (This is why Issue #3 exists.)
+
+---
