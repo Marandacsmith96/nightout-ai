@@ -29,6 +29,7 @@ demo mode that runs with zero API keys).
 | **Map** | "Your night at a glance" mini-map on real coordinates + one-click Google Maps route with all stops |
 | **Save & share** | Save to the browser, reload later; copy a formatted plan for the group chat; share a link that restores the whole plan |
 | **Surprise Me** | One click, zero inputs: a complete random-but-sensible plan |
+| **🎨 Poster & 🔊 voice-over** | Turn the night into shareable media: an AI promo poster (FLUX — abstract art, so the app's UI owns all typography) and a spoken voice-over (Chatterbox TTS) — each honestly labeled with the exact prompt / narration used |
 | **Honest data** | Demo mode is *always* labeled ("sample places") until a Google Places key is added — never disguised as live |
 
 ## 🏗️ Architecture
@@ -45,7 +46,9 @@ FastAPI (backend :8000)
    │                         (replace/add/remove/constraints/replan) →
    │                         deterministic apply → recompute schedule/budget
    ├─ /api/venues/search   → live Google Places (key) OR labeled demo catalog
-   └─ /api/travel/time     → live Google Routes (key) OR labeled estimate
+   ├─ /api/travel/time     → live Google Routes (key) OR labeled estimate
+   ├─ /api/media/poster    → FLUX promo poster (or friendly "not configured")
+   └─ /api/media/voiceover → Chatterbox voice-over (or friendly "not configured")
 ```
 
 Three-layer honesty design:
@@ -104,6 +107,8 @@ python -m pytest -q          # 49 tests, offline (AI stubbed in tests)
 | `GOOGLE_PLACES_API_KEY` | Live venue retrieval | Labeled demo catalog |
 | `GOOGLE_ROUTES_API_KEY` | Live travel times | Labeled straight-line estimates |
 | `TICKETMASTER_API_KEY` | (optional, not yet wired) | — |
+| `FLUX_BASE_URL` + `FLUX_API_KEY` (+ `FLUX_MODEL`) | AI promo poster | Poster button shows a friendly note |
+| `TTS_BASE_URL` + `TTS_API_KEY` (+ `TTS_MODEL`) | AI voice-over | Voice button shows a friendly note |
 | `ALLOWED_ORIGINS` | CORS for the frontend | dev defaults |
 
 Only `OPENAI_API_KEY` is needed for the app to feel fully "AI".
@@ -118,6 +123,8 @@ Only `OPENAI_API_KEY` is needed for the app to feel fully "AI".
 | POST | `/api/plan/generate` | Body: `PlanRequest` → `Itinerary` |
 | POST | `/api/plan/edit` | Body: `{instruction, request, itinerary, locked_indices}` → `{itinerary, reply}` |
 | POST | `/api/plan/regenerate` | Body: `{request, locked_indices}` → `{itinerary, reply}` |
+| POST | `/api/media/poster` | Body: `Itinerary` → base64 PNG poster + the exact prompt |
+| POST | `/api/media/voiceover` | Body: `Itinerary` → base64 MP3 narration + the exact text |
 
 All schemas live in `backend/app/schemas.py` (Pydantic v2).
 
@@ -139,7 +146,7 @@ final-project/
 │   ├── app/
 │   │   ├── main.py            # FastAPI wiring, CORS, health
 │   │   ├── schemas.py         # the API contract (validated everywhere)
-│   │   ├── routers/           # plan, venues, travel
+│   │   ├── routers/           # plan, venues, travel, media
 │   │   └── services/
 │   │       ├── catalog.py     # live (Places) ↔ demo switch
 │   │       ├── places.py      # Google Places client + normalization
@@ -147,13 +154,15 @@ final-project/
 │   │       ├── demo_data.py   # sample venues, labeled
 │   │       ├── ai.py          # the only LLM calls (strict JSON contracts)
 │   │       ├── planner.py     # generate: picks → schedule → budget
-│   │       └── editor.py      # apply conversational edits deterministically
+│   │       ├── editor.py      # apply conversational edits deterministically
+│   │       └── media.py       # Phase 7: FLUX poster + Chatterbox voice-over
 │   └── tests/                 # 49 tests (health, venues, travel, planner,
 │                              #   editor, schemas, invariants)
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/             # Home, Planner
 │   │   ├── components/        # form, itinerary, chat, minimap, UI kit
+│   │   ├── MediaModal.jsx     # Phase 7: poster / voice-over modal
 │   │   ├── lib/               # options, share/save helpers
 │   │   └── api/client.js      # fetch wrapper
 │   └── package.json
@@ -171,6 +180,9 @@ final-project/
 - **Explicit failure**: AI down, unparseable, or over budget → the app falls
   back or trims — and *tells the user* what happened in the itinerary notes.
 - **Demo ≠ live**: every demo venue, response, and UI badge says so.
+- **Media is labeled too**: posters and voice-overs name their model and show
+  the exact prompt / narration that produced them, so nothing AI-made is
+  passed off as human-made.
 
 ## 🌱 What's intentionally out of scope
 

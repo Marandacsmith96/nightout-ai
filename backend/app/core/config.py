@@ -61,5 +61,41 @@ class Settings:
     def ticketmaster_api_key(self) -> str:
         return os.getenv("TICKETMASTER_API_KEY", "").strip()
 
+    # --- Phase 7: multimodal media (promo poster + voice-over) ---
+
+    @property
+    def flux_base_url(self) -> str | None:
+        """FLUX image endpoint (OpenAI-compatible /images/generations)."""
+        return os.getenv("FLUX_BASE_URL", "").strip() or None
+
+    @property
+    def flux_api_key(self) -> str:
+        return os.getenv("FLUX_API_KEY", "").strip()
+
+    @property
+    def flux_model(self) -> str:
+        return os.getenv("FLUX_MODEL", "black-forest-labs/FLUX.2-klein-4B").strip()
+
+    @property
+    def flux_configured(self) -> bool:
+        return bool(self.flux_base_url and self.flux_api_key)
+
+    @property
+    def tts_base_url(self) -> str | None:
+        """Chatterbox TTS endpoint (OpenAI-compatible /v1/audio/speech)."""
+        return os.getenv("TTS_BASE_URL", "").strip() or None
+
+    @property
+    def tts_api_key(self) -> str:
+        return os.getenv("TTS_API_KEY", "").strip()
+
+    @property
+    def tts_model(self) -> str:
+        return os.getenv("TTS_MODEL", "chatterbox-v3").strip()
+
+    @property
+    def tts_configured(self) -> bool:
+        return bool(self.tts_base_url and self.tts_api_key)
+
 
 settings = Settings()

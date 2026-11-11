@@ -29,6 +29,9 @@ export default function ItineraryView({
   onSave,
   onCopy,
   onShareLink,
+  onPoster,
+  onVoiceover,
+  mediaBusy = null,
   saved,
 }) {
   const demo = itinerary?.demo;
@@ -64,6 +67,16 @@ export default function ItineraryView({
           {onShareLink ? (
             <Button variant="ghost" size="sm" onClick={onShareLink} disabled={busy}>
               🔗 Share link
+            </Button>
+          ) : null}
+          {onPoster ? (
+            <Button variant="ghost" size="sm" onClick={onPoster} disabled={busy || mediaBusy === "poster"}>
+              {mediaBusy === "poster" ? "🎨 Drawing…" : "🎨 Poster"}
+            </Button>
+          ) : null}
+          {onVoiceover ? (
+            <Button variant="ghost" size="sm" onClick={onVoiceover} disabled={busy || mediaBusy === "voiceover"}>
+              {mediaBusy === "voiceover" ? "🔊 Narrating…" : "🔊 Hear it"}
             </Button>
           ) : null}
           <Button variant="ghost" onClick={onRegenerate} disabled={busy}>

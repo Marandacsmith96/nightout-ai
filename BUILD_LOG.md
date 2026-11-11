@@ -308,3 +308,58 @@ shape, not just the backend's own view of it — add a fixture that replays the
 frontend's real request body.
 
 ---
+
+## Phase 7 — Promo Poster & Voice-Over ✅ *(multimodal media)*
+
+**Goal:** turn a finished itinerary into shareable media with a second and
+third GenAI modality — an *image* and a *voice* — using the free class
+endpoints. The app is no longer an LLM-only chat app; it is multimodal.
+
+### What was built
+- **Media service** (`services/media.py`): two honest, config-gated generators.
+  - 🎨 *Poster* — builds a prompt from the **validated itinerary only** (city,
+    activity kinds) and asks FLUX (`black-forest-labs/FLUX.2-klein-4B`, class
+    endpoint 9006) for **abstract** artwork — no scene, no objects, no
+    signage — because the app's UI owns ALL typography (caption overlay), so
+    an image model never gets to spell words.
+  - 🔊 *Voice-over* — builds a short spoken narration from itinerary facts
+    (times read naturally as "7 PM", per-person costs, remaining budget) and
+    asks Chatterbox (class endpoint 9008, `chatterbox-v3`) for an MP3.
+- **Endpoints** (`routers/media.py`): `POST /api/media/poster` and
+  `POST /api/media/voiceover`. Both return `available: false` + a friendly
+  note when unconfigured — the same "honest demo" philosophy as places and
+  AI — and clean 502s with actionable text when an upstream service fails.
+- **Frontend**: 🎨 Poster and 🔊 Hear it buttons in the itinerary header; a
+  modal shows the poster with city/date caption overlay plus the *exact
+  prompt* used, or an inline audio player plus the *exact narration*; both
+  offer one-click download.
+- **Config**: `FLUX_*` / `TTS_*` env vars (documented in `.env.example` and
+  the README key table); `/api/health` now reports `media_configured`.
+- **Tests**: 8 new offline tests (57 total) — prompt/narration builders,
+  honest not-configured behavior, stubbed configured success, and
+  upstream-failure 502s.
+
+### Verified
+- 57/57 pytest offline; frontend `npm run build` clean.
+
+### Bugs found & fixed
+1. The poster-prompt test asserted lowercase `"no text, no lettering"` while
+   the prompt capitalizes the sentence-initial "No" — fixed the assertion to
+   compare case-insensitively (the underlying prompt is correct).
+2. **FLUX.2-klein scribbled pseudo-lettering over the poster anyway**
+   (live-checked: "STARDYY NIVOMBER 21", "DIENTOERR BISSUE", venue-name
+   gibberish). Root cause: scene compositions — streets, neon signs, awnings —
+   give the model signage to fake, and it can't resist. Fix: **abstract art
+   direction** (no objects/people/buildings/scene at all); the app's UI owns
+   all typography via the caption overlay. Re-verified live: generated art is
+   100% lettering-free.
+
+### Lessons learned
+- Asking an image model to spell words is a lost cause — and worse, giving it
+  a *scene* to paint gives it signage to fake. Abstract art direction plus
+  UI-owned typography keeps every word crisp and honest.
+- The honesty pattern that labels demo data extends naturally to media: every
+  poster and voice-over says which model made it and shows exactly what was
+  sent upstream — the brand promise stays intact as the app grows.
+
+---

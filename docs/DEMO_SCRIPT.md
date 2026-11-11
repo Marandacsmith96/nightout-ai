@@ -1,4 +1,4 @@
-# NightOut AI — Live Demo Script (~4 minutes)
+# NightOut AI — Live Demo Script (~5 minutes)
 
 Use this as your walkthrough for the class presentation. Everything here is the
 REAL app running locally (backend :8000 + frontend :5173). No mockups.
@@ -79,6 +79,16 @@ Close with the honesty one-liner:
 > choose from venues we actually retrieved, every number comes from venue data
 > not the model, budgets are hard limits, and sample data is labeled — demo
 > mode says 'sample places' right in the UI until you connect live APIs."
+
+## 6. The wow finish (3:50–4:30) — poster & voice-over
+
+"This app doesn't just *plan* the night — it makes the media for it."
+
+- Click **🎨 Poster** → a FLUX-generated promotional poster appears with the
+  city + date caption. Point at the honesty label: "It shows you the exact
+  prompt it sent, and tells you which model made it."
+- Click **🔊 Hear it** → the night reads itself out loud (Chatterbox TTS).
+- "Every AI artifact in this app is labeled — places, posters, and voices."
 
 ## Backup answers
 

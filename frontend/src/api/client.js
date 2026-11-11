@@ -46,4 +46,17 @@ export const api = {
       }),
     });
   },
+  // Phase 7: multimodal media (promo poster + voice-over).
+  async poster(itinerary) {
+    return request("/api/media/poster", {
+      method: "POST",
+      body: JSON.stringify(itinerary),
+    });
+  },
+  async voiceover(itinerary) {
+    return request("/api/media/voiceover", {
+      method: "POST",
+      body: JSON.stringify(itinerary),
+    });
+  },
 };
