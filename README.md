@@ -29,7 +29,7 @@ demo mode that runs with zero API keys).
 | **Map** | "Your night at a glance" mini-map on real coordinates + one-click Google Maps route with all stops |
 | **Save & share** | Save to the browser, reload later; copy a formatted plan for the group chat; share a link that restores the whole plan |
 | **Surprise Me** | One click, zero inputs: a complete random-but-sensible plan |
-| **🎨 Poster & 🔊 voice-over** | Turn the night into shareable media: an AI promo poster (FLUX image model) and a spoken voice-over (Chatterbox TTS) — each honestly labeled with the exact prompt / narration used |
+| **🎨 Poster & 🔊 voice-over** | Turn the night into shareable media: an AI promo poster (FLUX — abstract art, so the app's UI owns all typography) and a spoken voice-over (Chatterbox TTS) — each honestly labeled with the exact prompt / narration used |
 | **Honest data** | Demo mode is *always* labeled ("sample places") until a Google Places key is added — never disguised as live |
 
 ## 🏗️ Architecture

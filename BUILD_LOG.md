@@ -318,10 +318,10 @@ endpoints. The app is no longer an LLM-only chat app; it is multimodal.
 ### What was built
 - **Media service** (`services/media.py`): two honest, config-gated generators.
   - 🎨 *Poster* — builds a prompt from the **validated itinerary only** (city,
-    date, real venue titles, budget) and asks FLUX
-    (`black-forest-labs/FLUX.2-klein-4B`, class endpoint 9006) for poster
-    artwork **with no text/lettering** — typography is overlaid by the UI, so
-    an image model can never garble words.
+    activity kinds) and asks FLUX (`black-forest-labs/FLUX.2-klein-4B`, class
+    endpoint 9006) for **abstract** artwork — no scene, no objects, no
+    signage — because the app's UI owns ALL typography (caption overlay), so
+    an image model never gets to spell words.
   - 🔊 *Voice-over* — builds a short spoken narration from itinerary facts
     (times read naturally as "7 PM", per-person costs, remaining budget) and
     asks Chatterbox (class endpoint 9008, `chatterbox-v3`) for an MP3.
@@ -346,10 +346,18 @@ endpoints. The app is no longer an LLM-only chat app; it is multimodal.
 1. The poster-prompt test asserted lowercase `"no text, no lettering"` while
    the prompt capitalizes the sentence-initial "No" — fixed the assertion to
    compare case-insensitively (the underlying prompt is correct).
+2. **FLUX.2-klein scribbled pseudo-lettering over the poster anyway**
+   (live-checked: "STARDYY NIVOMBER 21", "DIENTOERR BISSUE", venue-name
+   gibberish). Root cause: scene compositions — streets, neon signs, awnings —
+   give the model signage to fake, and it can't resist. Fix: **abstract art
+   direction** (no objects/people/buildings/scene at all); the app's UI owns
+   all typography via the caption overlay. Re-verified live: generated art is
+   100% lettering-free.
 
 ### Lessons learned
-- Asking an image model to spell words is a lost cause; overlaying crisp
-  typography in the UI keeps both the artwork and the text beautiful.
+- Asking an image model to spell words is a lost cause — and worse, giving it
+  a *scene* to paint gives it signage to fake. Abstract art direction plus
+  UI-owned typography keeps every word crisp and honest.
 - The honesty pattern that labels demo data extends naturally to media: every
   poster and voice-over says which model made it and shows exactly what was
   sent upstream — the brand promise stays intact as the app grows.

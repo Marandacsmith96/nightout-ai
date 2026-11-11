@@ -57,9 +57,8 @@ def test_poster_prompt_builder_uses_only_verified_facts():
     it = Itinerary.model_validate(_itinerary())
     prompt = media.poster_prompt(it)
     assert "Denver" in prompt
-    assert "Saturday, November 14" in prompt
-    assert "Test Table" in prompt
-    # typography stays out of the image — the UI overlays text
+    assert "inspired by an evening of dinner" in prompt
+    # typography stays out of the image — the app's UI owns all words
     assert "no text, no lettering" in prompt.lower()
 
 

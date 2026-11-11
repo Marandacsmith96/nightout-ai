@@ -9,7 +9,6 @@ Follows the same honesty rules as the rest of the app:
 from __future__ import annotations
 
 import base64
-import datetime as _dt
 import httpx
 
 from app.core.config import settings
@@ -27,13 +26,6 @@ def _auth_headers(key: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {key}"}
 
 
-def _pretty_date(date_str: str) -> str:
-    try:
-        return _dt.datetime.strptime(date_str, "%Y-%m-%d").strftime("%A, %B %d")
-    except ValueError:
-        return date_str
-
-
 def _pretty_time(hhmm: str) -> str:
     try:
         h, m = map(int, hhmm.split(":"))
@@ -47,22 +39,23 @@ def _pretty_time(hhmm: str) -> str:
 def poster_prompt(itinerary) -> str:
     """Build the FLUX prompt from a *validated* itinerary.
 
-    The model sees only facts the app already verified (city, date, real
-    venue titles, budget) — it can style the scene but cannot change the plan.
-    Text is deliberately excluded from the image; the UI overlays the crisp
-    typography instead of asking a text-garbling image model to spell words.
+    Art direction is deliberately **abstract**: FLUX.2-klein reflexively paints
+    pseudo-signage/lettering into scene compositions (verified live in QA), so
+    the poster asks for pure light-and-color art with no objects, no scene,
+    and no signage. The app owns ALL typography — the modal overlays the crisp
+    city/date caption on top, so words are never left to an image model.
     """
     city = itinerary.city
-    date_label = _pretty_date(itinerary.date)
-    stops = "; ".join(f"{s.kind} at {s.title}" for s in itinerary.stops[:8])
-    budget = itinerary.budget.per_person_total if itinerary.budget else 0
+    kinds = ", ".join(dict.fromkeys(s.kind for s in itinerary.stops[:8])) or "a fun evening"
     return (
-        f"Original event-poster artwork advertising a night out in {city} "
-        f"on {date_label}. The evening includes: {stops}. "
-        f"Group budget about ${budget} per person. "
-        "Vibrant cinematic nightlife scene, warm neon glow, rich deep colors, "
-        "high detail, professional poster composition. "
-        "No text, no lettering, no words, no logos, no watermarks."
+        f"Abstract nightlife poster artwork for a night out in {city}, inspired "
+        f"by an evening of {kinds}. "
+        "Deep navy background with flowing neon gradient waves in purple, pink "
+        "and warm gold, a subtle crescent moon, floating glowing bokeh "
+        "particles like city lights. Elegant, premium, calm composition. "
+        "No objects, no people, no buildings, no scene, no silhouettes. "
+        "No text, no lettering, no words, no numbers, no signs — pure "
+        "abstract art only."
     )
 
 
