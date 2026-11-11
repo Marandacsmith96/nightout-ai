@@ -129,6 +129,22 @@ async def generate_poster(itinerary) -> dict:
     }
 
 
+def _audio_media_type(audio: bytes) -> str:
+    """Sniff the actual container and label it honestly.
+
+    We *ask* for MP3, but the class TTS occasionally responds with an M4A
+    (ftyp) stream instead. The browser refuses to play bytes labeled with the
+    wrong MIME type, so the label must match what we actually received.
+    """
+    if audio[:3] == b"ID3" or audio[:2] == b"\xff\xfb":
+        return "audio/mpeg"
+    if audio[4:8] == b"ftyp":
+        return "audio/mp4"
+    if audio[:4] == b"RIFF" and audio[8:12] == b"WAVE":
+        return "audio/wav"
+    return "audio/mpeg"  # safest default
+
+
 async def generate_voiceover(itinerary) -> dict:
     """Generate a spoken summary; returns a VoiceoverResponse-shaped dict."""
     if not settings.tts_configured:
@@ -167,7 +183,7 @@ async def generate_voiceover(itinerary) -> dict:
 
     return {
         "available": True,
-        "media_type": "audio/mpeg",
+        "media_type": _audio_media_type(audio),
         "data_b64": base64.b64encode(audio).decode("ascii"),
         "source": "chatterbox",
         "source_label": "AI voice-over with Chatterbox",

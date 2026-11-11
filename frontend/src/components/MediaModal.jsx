@@ -42,7 +42,11 @@ export default function MediaModal({ media, onClose }) {
             <audio controls autoPlay src={media.dataUrl} />
             <p className="media-note">✨ {media.sourceLabel} — the exact narration:</p>
             <p className="media-prompt">“{media.narration}”</p>
-            <a className="btn btn-primary media-download" href={media.dataUrl} download="nightout-voiceover.mp3">
+            <a
+              className="btn btn-primary media-download"
+              href={media.dataUrl}
+              download={`nightout-voiceover.${(media.mediaType || "audio/mpeg").includes("mp4") ? "m4a" : (media.mediaType || "audio/mpeg").includes("wav") ? "wav" : "mp3"}`}
+            >
               ⬇️ Download voice-over
             </a>
           </>

@@ -155,6 +155,7 @@ export default function PlannerPage() {
       setMedia({
         type: "voiceover",
         dataUrl: `data:${res.media_type};base64,${res.data_b64}`,
+        mediaType: res.media_type,
         sourceLabel: res.source_label,
         narration: res.narration,
         city: itinerary.city,
