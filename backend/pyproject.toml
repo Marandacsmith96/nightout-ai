@@ -1,0 +1,7 @@
+# Backend tooling config.
+# Currently only pytest options live here; keep it minimal.
+[tool.pytest.ini_options]
+# pytest-asyncio: async fixtures (e.g. `base_itinerary`) are created per test
+# ("function" scope) — set explicitly to silence the deprecation warning about
+# the future default and make the choice intentional. See QA_REPORT.md (minor #3).
+asyncio_default_fixture_loop_scope = "function"
