@@ -5,6 +5,8 @@
 **GitHub:** https://github.com/Marandacsmith96/nightout-ai
 &nbsp;·&nbsp; **Open the app (when running):** http://localhost:5173
 
+[![CI](https://github.com/Marandacsmith96/nightout-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/Marandacsmith96/nightout-ai/actions/workflows/ci.yml)
+
 NightOut AI is a smart group night-out planner. Tell it your city, budget, group
 size, free time, and what you're into — it returns a complete evening itinerary
 with real places, real addresses, per-person costs, travel times, and a map.
@@ -65,6 +67,18 @@ Three-layer honesty design:
    validate every object at every boundary.
 
 ## 🚀 Run it
+
+### Fastest: one command
+
+```bash
+./start.sh              # boots backend (:8000) + frontend (:5173); Ctrl+C stops both
+```
+
+> Requires Python 3.9+ and Node 18+ on PATH. First run creates `backend/.venv`,
+> `backend/.env`, and `frontend/node_modules` automatically — no keys needed to
+> try the app (demo mode).
+
+### Or run the two servers yourself
 
 ### Backend (FastAPI)
 

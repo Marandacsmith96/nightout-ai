@@ -363,3 +363,28 @@ endpoints. The app is no longer an LLM-only chat app; it is multimodal.
   sent upstream — the brand promise stays intact as the app grows.
 
 ---
+
+## Phase 8 — Repo polish: CI, one-command startup, templates ✅
+
+**Goal:** make the repository itself part of the deliverable — green CI on
+every change, a one-command run for anyone (including the professor), and
+contribution tooling that makes the branch → PR workflow frictionless.
+
+### What was built
+- **GitHub Actions CI** (`.github/workflows/ci.yml`): on every push/PR —
+  backend `pytest` (57 tests, offline, no keys needed) and frontend
+  `npm run build`. Green badge in the README.
+- **`start.sh`**: one command boots backend + frontend; first run creates the
+  venv, `.env` (from `.env.example`), and `node_modules` automatically.
+  `Ctrl+C` stops both servers.
+- **PR + issue templates** (`.github/`) matching the team's documented
+  workflow.
+- Merged PRs #2 (QA polish) and #4 (multimodal media) into `main`; feature
+  branches deleted after merge.
+
+### Verified
+- 57/57 pytest + clean frontend build on the merged `main`.
+- CI workflow runs the same suite in an isolated, keyless environment (the
+  exact experience a fresh clone gets).
+
+---
