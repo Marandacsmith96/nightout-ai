@@ -108,6 +108,20 @@ def test_poster_configured_returns_image(monkeypatch):
     assert body["source"] == "flux"
 
 
+@pytest.mark.parametrize(
+    "blob, expected",
+    [
+        (b"ID3\x04\x00\x00\x00\x00\x00\x00", "audio/mpeg"),
+        (b"\xff\xfb\x90\x64", "audio/mpeg"),
+        (b"\x00\x00\x00\x18ftypM4A \x00\x00\x00\x00", "audio/mp4"),
+        (b"RIFF\x24\x00\x00\x00WAVEfmt ", "audio/wav"),
+        (b"\x00\x01\x02\x03\x04\x05\x06\x07", "audio/mpeg"),
+    ],
+)
+def test_audio_media_type_sniffs_container(blob, expected):
+    assert media._audio_media_type(blob) == expected
+
+
 def test_voiceover_configured_returns_audio(monkeypatch):
     monkeypatch.setenv("TTS_API_KEY", "test-key")
     monkeypatch.setenv("TTS_BASE_URL", "http://tts.test")
