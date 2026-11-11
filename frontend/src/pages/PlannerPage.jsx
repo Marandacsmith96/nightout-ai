@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import PlannerForm from "../components/PlannerForm.jsx";
 import ItineraryView from "../components/ItineraryView.jsx";
 import ChatPanel from "../components/ChatPanel.jsx";
+import MediaModal from "../components/MediaModal.jsx";
 import { LoadingOverlay } from "../components/kit.jsx";
 import { api } from "../api/client.js";
-import { summarizeNight } from "../lib/nightOptions.js";
+import { localMidnight, summarizeNight } from "../lib/nightOptions.js";
 import {
   copyText, decodeShare, deleteSaved, encodeShare, itineraryText,
   loadSaved, saveNight,
@@ -19,6 +20,8 @@ export default function PlannerPage() {
   const [locked, setLocked] = useState([]); // stop indices
   const [savedList, setSavedList] = useState(loadSaved());
   const [flash, setFlash] = useState(null); // small toast-ish message
+  const [media, setMedia] = useState(null); // Phase 7: open media modal (poster / voice-over)
+  const [mediaBusy, setMediaBusy] = useState(null); // "poster" | "voiceover" | null
   const resultsRef = useRef(null);
 
   // Restore a shared itinerary from the URL fragment (#...), e.g. after a friend
@@ -103,8 +106,65 @@ export default function PlannerPage() {
   function handleShareLink() {
     const url = `${window.location.origin}${window.location.pathname}#${encodeShare({ plan, itinerary })}`;
     copyText(url).then((ok) =>
-      setFlash(ok ? "Share link copied — anyone with this browser can open it 🔗" : "Couldn't copy the link.")
+      setFlash(ok ? "Share link copied — anyone with this link can open it 🔗" : "Couldn't copy the link.")
     );
+  }
+
+  // Phase 7: multimodal media — promo poster (FLUX) + voice-over (Chatterbox).
+  function mediaDateLabel() {
+    return localMidnight(itinerary.date).toLocaleDateString(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+  }
+
+  async function handlePoster() {
+    if (!itinerary) return;
+    setMediaBusy("poster");
+    try {
+      const res = await api.poster(itinerary);
+      if (!res.available) {
+        setFlash(res.note || "Poster studio isn't available right now.");
+        return;
+      }
+      setMedia({
+        type: "poster",
+        dataUrl: `data:${res.media_type};base64,${res.data_b64}`,
+        sourceLabel: res.source_label,
+        prompt: res.prompt,
+        city: itinerary.city,
+        dateLabel: mediaDateLabel(),
+      });
+    } catch (err) {
+      setFlash(err.message || "Poster generation failed.");
+    } finally {
+      setMediaBusy(null);
+    }
+  }
+
+  async function handleVoiceover() {
+    if (!itinerary) return;
+    setMediaBusy("voiceover");
+    try {
+      const res = await api.voiceover(itinerary);
+      if (!res.available) {
+        setFlash(res.note || "Voice-over isn't available right now.");
+        return;
+      }
+      setMedia({
+        type: "voiceover",
+        dataUrl: `data:${res.media_type};base64,${res.data_b64}`,
+        sourceLabel: res.source_label,
+        narration: res.narration,
+        city: itinerary.city,
+        dateLabel: mediaDateLabel(),
+      });
+    } catch (err) {
+      setFlash(err.message || "Voice-over generation failed.");
+    } finally {
+      setMediaBusy(null);
+    }
   }
 
   function loadSavedNight(item) {
@@ -195,12 +255,17 @@ export default function PlannerPage() {
             saved={currentSaved}
             onCopy={handleCopy}
             onShareLink={handleShareLink}
+            onPoster={handlePoster}
+            onVoiceover={handleVoiceover}
+            mediaBusy={mediaBusy}
           />
           <ChatPanel onSend={handleEdit} busy={editing || generating} />
         </section>
       ) : null}
 
       {flash ? <div className="flash-note">✨ {flash}</div> : null}
+
+      {media ? <MediaModal media={media} onClose={() => setMedia(null)} /> : null}
 
       {generating && !itinerary ? (
         <LoadingOverlay title="Planning your perfect night…" sub="Picking real places that fit your group, budget, and time — this only takes a few seconds." />
