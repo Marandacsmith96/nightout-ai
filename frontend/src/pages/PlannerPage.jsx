@@ -103,7 +103,7 @@ export default function PlannerPage() {
   function handleShareLink() {
     const url = `${window.location.origin}${window.location.pathname}#${encodeShare({ plan, itinerary })}`;
     copyText(url).then((ok) =>
-      setFlash(ok ? "Share link copied — anyone with this browser can open it 🔗" : "Couldn't copy the link.")
+      setFlash(ok ? "Share link copied — anyone with this link can open it 🔗" : "Couldn't copy the link.")
     );
   }
 
