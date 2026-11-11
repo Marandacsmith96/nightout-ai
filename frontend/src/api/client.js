@@ -35,12 +35,16 @@ export const api = {
     });
   },
   // Phase 4: conversational edits + locked regeneration.
-  async editNight({ instruction, request, itinerary, lockedIndices }) {
+  // NOTE: the destructured plan is renamed to `plan` — naming it `request`
+  // shadowed the module-level request() helper and broke every edit in the
+  // browser (TypeError: request is not a function). Found during QA
+  // click-through; see BUILD_LOG Phase 8.
+  async editNight({ instruction, request: plan, itinerary, lockedIndices }) {
     return request("/api/plan/edit", {
       method: "POST",
       body: JSON.stringify({
         instruction,
-        request: toApiPlan(request),
+        request: toApiPlan(plan),
         itinerary,
         locked_indices: lockedIndices ?? [],
       }),
