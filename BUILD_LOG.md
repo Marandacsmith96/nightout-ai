@@ -3,6 +3,31 @@
 A plain-language record of how this app was built: phases, decisions, bugs, fixes,
 and lessons. Updated as development progresses.
 
+## Final review fixes — November 15, 2026
+
+Prepared through Thomas Boyle's GitHub account with Codex. The review found
+bugs beyond the existing 62-test suite:
+
+- Sequential chat edits lost changed constraints. Itineraries now carry their
+  effective request, and the frontend separates form drafts from the displayed
+  itinerary's preferences. Surprise Me and custom dietary text use the submitted
+  preferences through edits, saves and restoration.
+- Locking the second stop could duplicate it and replace dinner. Regeneration
+  now merges locked venues at their positions, deduplicates IDs, and explains
+  infeasible locks. UI lock state follows venue identity.
+- A $25 rideshare plan could cost $28. Budget trimming now handles the final
+  stop, unknown costs and empty plans, prioritizes locks where feasible, and
+  recomputes travel after removing earlier stops.
+- The form rejected today's date in US timezones. Validation and the minimum
+  date now use the local calendar date, consistent with the existing date helpers.
+- Duplicate AI picks are rejected. Adding a stop to an empty itinerary no
+  longer indexes a missing first stop. Swap/regenerate failures show a message.
+
+Regression coverage: 72 backend tests and 4 frontend UI tests. The frontend
+tests exercise the real components against a stubbed API, including multiple
+actions in sequence; CI now runs them in America's Denver timezone.
+See `docs/evidence/thomasboyle/FINAL_QA.md` for checks and remaining manual work.
+
 ---
 
 ## Phase 1 — Project Setup and Design ✅ *(done)*

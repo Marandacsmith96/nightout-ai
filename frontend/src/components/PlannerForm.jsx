@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Chip, Field, Stepper, BudgetSlider } from "./kit.jsx";
 import {
   ACTIVITIES, ATMOSPHERES, BUDGET_PRESETS, DISTANCE_PREFS,
-  FOOD_RESTRICTIONS, TRANSPORT, formatTime, randomSurprisePlan,
+  FOOD_RESTRICTIONS, TRANSPORT, formatTime, randomSurprisePlan, toLocalDateStr,
 } from "../lib/nightOptions.js";
 
 const EMPTY = {
@@ -13,8 +13,13 @@ const EMPTY = {
   distance: "Moderate travel between stops is okay", notes: "",
 };
 
-export default function PlannerForm({ onPlanChange, onGenerate }) {
-  const [p, setP] = useState(EMPTY);
+export default function PlannerForm({ onPlanChange, onGenerate, initialPlan }) {
+  const [p, setP] = useState(() => {
+    if (!initialPlan) return EMPTY;
+    const known = (initialPlan.restrictions || []).filter((r) => FOOD_RESTRICTIONS.includes(r) && r !== "Other (type below)");
+    const custom = (initialPlan.restrictions || []).filter((r) => !FOOD_RESTRICTIONS.includes(r));
+    return { ...EMPTY, ...initialPlan, restrictions: [...known, ...(custom.length ? ["Other (type below)"] : [])], otherRestriction: custom.join(", ") };
+  });
   const [errors, setErrors] = useState({});
 
   useEffect(() => { onPlanChange(p); }, [p]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -38,7 +43,7 @@ export default function PlannerForm({ onPlanChange, onGenerate }) {
     const e = {};
     if (!p.city.trim()) e.city = "Enter a city (e.g. Denver).";
     if (!p.date) e.date = "Pick the date of your night out.";
-    if (p.date && new Date(p.date) < new Date(new Date().toDateString())) e.date = "That date is in the past.";
+    if (p.date && p.date < toLocalDateStr(new Date())) e.date = "That date is in the past.";
     if (!p.startTime) e.startTime = "Pick a start time.";
     if (!p.endTime) e.endTime = "Pick an end time.";
     if (p.startTime && p.endTime && p.endTime <= p.startTime && p.endTime > "03:00")
@@ -57,7 +62,7 @@ export default function PlannerForm({ onPlanChange, onGenerate }) {
     onGenerate({ ...rest, restrictions });
   }
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalDateStr(new Date());
 
   return (
     <form noValidate onSubmit={submit}>

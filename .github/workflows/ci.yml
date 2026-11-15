@@ -37,3 +37,7 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+      - name: Frontend regression tests
+        run: npm test
+        env:
+          TZ: America/Denver

@@ -5,6 +5,7 @@ import ChatPanel from "../components/ChatPanel.jsx";
 import MediaModal from "../components/MediaModal.jsx";
 import { LoadingOverlay } from "../components/kit.jsx";
 import { api } from "../api/client.js";
+import { fromApiPlan } from "../lib/apiPlan.js";
 import { localMidnight, summarizeNight } from "../lib/nightOptions.js";
 import {
   copyText, decodeShare, deleteSaved, encodeShare, itineraryText,
@@ -13,11 +14,13 @@ import {
 
 export default function PlannerPage() {
   const [plan, setPlan] = useState(null);
+  const [draft, setDraft] = useState(null);
+  const [formVersion, setFormVersion] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [itinerary, setItinerary] = useState(null);
   const [error, setError] = useState(null);
-  const [locked, setLocked] = useState([]); // stop indices
+  const [locked, setLocked] = useState([]); // venue IDs survive stop movement
   const [savedList, setSavedList] = useState(loadSaved());
   const [flash, setFlash] = useState(null); // small toast-ish message
   const [media, setMedia] = useState(null); // Phase 7: open media modal (poster / voice-over)
@@ -31,7 +34,8 @@ export default function PlannerPage() {
     if (!hash) return;
     const shared = decodeShare(hash);
     if (shared?.itinerary) {
-      setPlan(shared.plan || null);
+      setPlan(fromApiPlan(shared.itinerary.request) || shared.plan || null);
+      setFormVersion((v) => v + 1);
       setItinerary(shared.itinerary);
       setLocked([]);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth" }), 120);
@@ -48,6 +52,8 @@ export default function PlannerPage() {
     setLocked([]);
     try {
       const result = await api.generateNight(payload);
+      setPlan(fromApiPlan(result.request) || payload);
+      setFormVersion((v) => v + 1);
       setItinerary(result);
       scrollToResults();
     } catch (err) {
@@ -66,12 +72,17 @@ export default function PlannerPage() {
         instruction,
         request: plan,
         itinerary,
-        lockedIndices: locked,
+        lockedIndices: itinerary.stops.flatMap((s, i) => locked.includes(s.venue?.id) ? [i] : []),
       });
       setItinerary(res.itinerary);
+      setPlan(fromApiPlan(res.itinerary.request) || plan);
+      setFormVersion((v) => v + 1);
+      setLocked((ids) => ids.filter((id) => res.itinerary.stops.some((s) => s.venue?.id === id)));
       return res.reply || "Done!";
     } catch (err) {
-      return `That change didn't go through (${err.message}). Try a different wording?`;
+      const message = `That change didn't go through (${err.message}). Try a different wording?`;
+      setFlash(message);
+      return message;
     } finally {
       setEditing(false);
     }
@@ -88,7 +99,8 @@ export default function PlannerPage() {
   }
 
   function toggleLock(index) {
-    setLocked((prev) => (prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]));
+    const id = itinerary?.stops[index]?.venue?.id;
+    if (id) setLocked((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]);
   }
 
   function handleSave() {
@@ -169,7 +181,8 @@ export default function PlannerPage() {
   }
 
   function loadSavedNight(item) {
-    setPlan(item.plan || null);
+    setPlan(fromApiPlan(item.itinerary.request) || item.plan || null);
+    setFormVersion((v) => v + 1);
     setItinerary(item.itinerary);
     setLocked([]);
     setFlash(`Loaded “${item.label}”`);
@@ -191,20 +204,20 @@ export default function PlannerPage() {
         <section className="panel">
           <h2>Your night, your way</h2>
           <p className="panel-sub">Everything below can be changed later by chatting with the AI.</p>
-          <PlannerForm onPlanChange={setPlan} onGenerate={handleGenerate} />
+          <PlannerForm key={formVersion} initialPlan={plan} onPlanChange={setDraft} onGenerate={handleGenerate} />
         </section>
 
         <aside className="panel live-summary">
           <h3>Your night so far</h3>
-          {summarizeNight(plan).map(([k, v]) => (
+          {summarizeNight(draft).map(([k, v]) => (
             <div className="live-row" key={k}>
               <span>{k}</span>
               <span>{v}</span>
             </div>
           ))}
-          {plan?.notes ? (
+          {draft?.notes ? (
             <div style={{ marginTop: 12, fontSize: 12.5, color: "var(--muted-2)" }}>
-              “{plan.notes.length > 140 ? plan.notes.slice(0, 140) + "…" : plan.notes}”
+              “{draft.notes.length > 140 ? draft.notes.slice(0, 140) + "…" : draft.notes}”
             </div>
           ) : null}
 
@@ -250,7 +263,7 @@ export default function PlannerPage() {
             onRegenerate={handleRegenerate}
             busy={generating || editing}
             onSwap={handleSwap}
-            lockedIndices={locked}
+            lockedIndices={itinerary.stops.flatMap((s, i) => locked.includes(s.venue?.id) ? [i] : [])}
             onToggleLock={toggleLock}
             onSave={handleSave}
             saved={currentSaved}
