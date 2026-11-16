@@ -75,7 +75,10 @@ Three-layer honesty design:
 2. **Selection** — the AI only *picks venue ids from the retrieved list*. It
    can never invent a business, address, hour, or price; unknown ids are
    rejected by validation. Unparseable AI output is retried, then a
-   deterministic top-rated fallback takes over and says so.
+   deterministic top-rated fallback takes over and says so. The model is
+   given a generous 8,000-token budget so full itineraries always come back
+   (a smaller cap could truncate the reply to empty and silently trip the
+   fallback).
 3. **Numbers** — schedule, travel times, and costs are computed by the app
    from venue data, never taken from the model's prose. Pydantic schemas
    validate every object at every boundary.

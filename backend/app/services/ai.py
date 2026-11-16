@@ -85,7 +85,7 @@ async def propose_itinerary(request: dict, candidates: list[dict]) -> tuple[dict
                 model=settings.openai_model or _MODEL,
                 messages=messages,
                 temperature=0,
-                max_tokens=1600,
+                max_tokens=8000,
                 extra_body={"enable_thinking": False},
             )
             raw = resp.choices[0].message.content or ""
@@ -207,7 +207,7 @@ async def interpret_edit(instruction: str, request: dict, stops: list[dict]) -> 
                 model=settings.openai_model or _MODEL,
                 messages=messages,
                 temperature=0,
-                max_tokens=700,
+                max_tokens=2500,
                 extra_body={"enable_thinking": False},
             )
             raw = resp.choices[0].message.content or ""

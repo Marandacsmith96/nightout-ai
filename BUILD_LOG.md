@@ -439,5 +439,33 @@ fallback note appears when the AI's JSON is unparseable.
 **Lesson:** a param name that collides with a module helper is invisible to
 backend tests — the *actual* client payload path needs at least one real
 browser click-through per feature. (This is why Issue #3 exists.)
+---
+
+## Post-launch hotfix — AI responses were silently truncating to empty
+
+Found during a QA pass after the demo was prepared: **every** plan generation
+was failing the AI's JSON contract — "AI response did not match the required
+JSON shape (attempt 3)" — and falling back to a single, top-rated stop.
+
+**Root cause (reproduced with a direct API call):** the model was returning
+*empty* content with `finish_reason: "length"`. With a small candidate list
+it replied fine; with the real per-activity venue pool (12+ venues), the
+request was heavy enough that the model's hidden reasoning consumed the whole
+`max_tokens` budget (1,600 for planning, 700 for edits), so no visible
+content came back. The parser correctly rejected the empty reply, retried
+twice more, and the app honestly reported the fallback — but the core feature
+had quietly degraded to 1-stop nights.
+
+**Fix:** `backend/app/services/ai.py` — planning calls get an 8,000-token
+budget, edit calls 2,500.
+
+**Verified:** direct model calls with the real candidate payload parse
+cleanly; a fresh generation returns a full 3-stop night (Linger → Death & Co
+→ Little Man Ice Cream) with correct schedule and budget lines; the edit
+path keeps working.
+
+**Lesson learned:** a token cap can't be sized by eyeballing short sample
+replies — size it against the *real* prompt (candidate payloads grow), and
+watch `finish_reason` for `"length"` as a canary.
 
 ---
