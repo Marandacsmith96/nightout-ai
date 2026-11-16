@@ -21,3 +21,9 @@ export function toApiPlan(p) {
     notes: p.notes ?? "",
   };
 }
+
+export function fromApiPlan(p) {
+  if (!p) return null;
+  const { group_size, start_time, end_time, ...rest } = p;
+  return { ...rest, groupSize: group_size, startTime: start_time, endTime: end_time };
+}

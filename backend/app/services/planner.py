@@ -140,13 +140,15 @@ def _deterministic_fallback(request: PlanRequest, pools: dict[str, Venue]) -> li
 def _validate_picks(picks: list[dict], request: PlanRequest, pools: dict[str, Venue]) -> list[dict]:
     allowed_kinds = {_kind_for(a) for a in request.activities}
     clean = []
+    used_ids = set()
     for p in picks:
         kind, vid = p.get("kind"), p.get("venue_id")
         if kind not in allowed_kinds:
             continue
-        if vid not in pools:
+        if vid not in pools or vid in used_ids:
             continue
         clean.append(p)
+        used_ids.add(vid)
     return _order_stops(clean)
 
 
@@ -166,7 +168,7 @@ def _budget(request: PlanRequest, stops: list[ItineraryStop], transport: str) ->
         total += cost
         lines.append({"label": s.kind, "amount": cost, "verified": verified})
     transport_cost = 0
-    if transport.lower() == "rideshare":
+    if stops and transport.lower() == "rideshare":
         transport_cost = 10  # rough estimate per person; flagged below
         total += transport_cost
         lines.append({"label": "rideshare (estimate)", "amount": transport_cost, "verified": False})
@@ -203,10 +205,9 @@ async def compute_stops(
     for pick in ordered_picks:
         venue = pools[pick["venue_id"]]
         travel, travel_mode, travel_src = await _travel_to_previous(prev_venue, venue, mode)
-        if travel:
-            clock += travel
         duration = KIND_DURATION_MIN.get(pick["kind"], 90)
-        stop_start, stop_end = clock, clock + duration
+        stop_start = clock + (travel or 0)
+        stop_end = stop_start + duration
         if stop_start >= end_min:
             notes.append(f"{pick['kind']} skipped — not enough time before {request.end_time}.")
             continue
@@ -239,19 +240,45 @@ async def compute_stops(
     return stops, notes
 
 
-def trim_to_budget(request: PlanRequest, stops: list[ItineraryStop], notes: list[str]) -> BudgetSummary:
-    """Strict-budget guarantee: never present a plan whose total exceeds the
-    per-person cap. Trim trailing (least-essential) stops first — dinner
-    survives, drinks/dessert go — and say so honestly in the edit notes."""
+def trim_to_budget(request: PlanRequest, stops: list[ItineraryStop], notes: list[str], protected_ids: set[str] | None = None) -> BudgetSummary:
+    """Keep known estimates within the cap, including transport.
+
+    Prefer trimming unlocked stops; return no stops if even one cannot fit.
+    Actual prices may differ from these estimates.
+    """
+    protected_ids = protected_ids or set()
+    for stop in list(stops):
+        if stop.cost_per_person is None:
+            stops.remove(stop)
+            notes.append(f"Removed {stop.title} — its cost is unknown, so affordability cannot be checked.")
     budget = _budget(request, stops, request.transport)
-    while budget.per_person_total > request.budget and len(stops) > 1:
-        dropped = stops.pop()
+    while budget.per_person_total > request.budget and stops:
+        removable = [i for i, s in enumerate(stops) if not s.venue or s.venue.id not in protected_ids]
+        dropped = stops.pop(removable[-1] if removable else -1)
         notes.append(
             f"Removed the {dropped.kind} stop ({dropped.title}) to stay within "
             f"the ${request.budget}/person budget."
         )
         budget = _budget(request, stops, request.transport)
+    for i, stop in enumerate(stops, 1):
+        stop.index = i
+    if not stops:
+        notes.append("No stops fit the current time and budget — try a longer evening, higher budget, different transport, or different activities.")
     return budget
+
+
+async def schedule_with_budget(request, picks, pools, protected_ids=None):
+    """Recompute travel after trimming, including removal before a locked stop."""
+    notes = []
+    while True:
+        stops, schedule_notes = await compute_stops(request, picks, pools)
+        notes.extend(schedule_notes)
+        before = [s.venue.id for s in stops]
+        budget = trim_to_budget(request, stops, notes, protected_ids)
+        remaining = {s.venue.id for s in stops}
+        if [s.venue.id for s in stops] == before:
+            return stops, list(dict.fromkeys(notes)), budget
+        picks = [p for p in picks if p["venue_id"] in remaining]
 
 
 async def generate(request: PlanRequest) -> Itinerary:
@@ -259,6 +286,7 @@ async def generate(request: PlanRequest) -> Itinerary:
 
     if not pools:
         return Itinerary(
+            request=request,
             id=uuid.uuid4().hex[:8],
             city=request.city,
             date=request.date,
@@ -285,10 +313,10 @@ async def generate(request: PlanRequest) -> Itinerary:
     if not clean:
         clean = _deterministic_fallback(request, pools)
 
-    stops, notes = await compute_stops(request, clean, pools)
-    budget = trim_to_budget(request, stops, notes)
+    stops, notes, budget = await schedule_with_budget(request, clean, pools)
 
     return Itinerary(
+        request=request,
         id=uuid.uuid4().hex[:8],
         city=request.city,
         date=request.date,

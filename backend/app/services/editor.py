@@ -17,7 +17,7 @@ planner helpers, so numbers stay consistent. Locked stops survive replans.
 from __future__ import annotations
 
 from app.core.config import settings
-from app.schemas import Itinerary, PlanRequest, Venue
+from app.schemas import Itinerary, ItineraryStop, PlanRequest, Venue
 from app.services import ai, catalog, planner
 
 _CLOSE_KINDS = {"cocktail bars", "casual drinks", "dessert or coffee"}
@@ -109,7 +109,7 @@ async def edit_itinerary(
             updated["end_time"] = c["end_time"]
         if c.get("start_time"):
             updated["start_time"] = c["start_time"]
-        if c.get("restrictions"):
+        if c.get("restrictions") is not None:
             updated["restrictions"] = c["restrictions"]
         if c.get("transport"):
             updated["transport"] = c["transport"]
@@ -184,8 +184,9 @@ async def edit_itinerary(
             if s.kind in _CLOSE_KINDS:
                 insert_at = i
                 break
-        stop = itinerary.stops[0].model_copy(update={
+        stop = ItineraryStop(**{
             "index": 0, "kind": kind, "title": venue.name, "venue": venue,
+            "start": request.start_time, "end": request.start_time,
             "note": reason, "travel_from_previous_min": None,
             "travel_from_previous_mode": None, "travel_from_previous_source": None,
             "cost_per_person": venue.cost_estimate_per_person, "cost_verified": venue.price_verified,
@@ -202,33 +203,42 @@ async def replan(
     request: PlanRequest, itinerary: Itinerary, locked_indices: list[int], note: str = ""
 ) -> dict:
     """Rebuild the night from scratch, then force locked stops back in place."""
-    locked = [s for i, s in enumerate(itinerary.stops) if i in locked_indices]
+    locked = {i: s for i, s in enumerate(itinerary.stops) if i in locked_indices and s.venue}
     fresh = await planner.generate(request)
     if locked:
         pools = {}
-        for s in locked:
+        for s in locked.values():
             if s.venue:
                 pools[s.venue.id] = s.venue
         for s in fresh.stops:
             if s.venue:
                 pools[s.venue.id] = s.venue
+        locked_ids = {s.venue.id for s in locked.values()}
+        alternatives = iter(s for s in fresh.stops if s.venue and s.venue.id not in locked_ids)
+        merged = []
+        for i in range(max(len(fresh.stops), max(locked) + 1)):
+            stop = locked.get(i) or next(alternatives, None)
+            if stop:
+                merged.append(stop)
+        merged.extend(alternatives)
+        seen = set()
         picks = []
-        locked_iter = iter(locked)
-        for s in fresh.stops:
-            locked_stop = next(locked_iter, None)
-            if locked_stop and locked_stop.venue:
-                picks.append({"kind": locked_stop.kind, "venue_id": locked_stop.venue.id,
-                              "reason": "Locked by the group."})
-            elif s.venue:
-                picks.append({"kind": s.kind, "venue_id": s.venue.id, "reason": s.note})
-        stops, notes = await planner.compute_stops(request, picks, pools)
-        budget = planner.trim_to_budget(request, stops, notes)
+        for s in merged:
+            if s.venue.id not in seen:
+                seen.add(s.venue.id)
+                picks.append({"kind": s.kind, "venue_id": s.venue.id,
+                              "reason": "Locked by the group." if s.venue.id in locked_ids else s.note})
+        stops, notes, budget = await planner.schedule_with_budget(request, picks, pools, protected_ids=locked_ids)
+        remaining_ids = {s.venue.id for s in stops if s.venue}
+        for s in locked.values():
+            if s.venue.id not in remaining_ids:
+                notes.append(f"Could not retain locked stop {s.title} within the current time and budget constraints.")
         fresh = fresh.model_copy(update={
             "stops": stops, "budget": budget,
             "edits": (fresh.edits or []) + ([note] if note else []) + notes,
             "id": __import__("uuid").uuid4().hex[:8],
         })
-    return {"itinerary": fresh, "reply": note or "Rebuilt your night — locked stops stayed put."}
+    return {"itinerary": fresh, "reply": note or "Rebuilt your night — check the notes for any stops that could not fit."}
 
 
 async def _rebuild(
@@ -240,9 +250,10 @@ async def _rebuild(
         if s.venue:
             pools[s.venue.id] = s.venue
     picks = [{"kind": s.kind, "venue_id": s.venue.id, "reason": s.note} for s in stops_list if s.venue]
-    stops, new_notes = await planner.compute_stops(request, picks, pools)
-    budget = planner.trim_to_budget(request, stops, notes + new_notes)
+    stops, new_notes, budget = await planner.schedule_with_budget(request, picks, pools)
+    notes = notes + new_notes
     itinerary = Itinerary(
+        request=request,
         id=__import__("uuid").uuid4().hex[:8],
         city=request.city,
         date=request.date,
@@ -251,6 +262,6 @@ async def _rebuild(
         generated_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(timespec="seconds"),
         demo=settings.demo_mode,
         demo_note=("Sample venues used — connect Google Places for live results." if settings.demo_mode else "Live Google Places results."),
-        edits=notes + new_notes,
+        edits=notes,
     )
     return {"itinerary": itinerary, "reply": reply}

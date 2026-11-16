@@ -39,7 +39,7 @@ demo mode that runs with zero API keys).
 |---|---|
 | **Plan** | City, date, group size (1–20), budget ($/person, presets + slider + exact), start/end time (nights past midnight OK), dietary restrictions (+ custom), 13 activity types, 7 atmospheres, transport, distance preference, free-text notes |
 | **AI itinerary** | A timed, ordered plan of *real* venues with arrival/departure times, walking/driving minutes between stops, an AI-written reason for every pick |
-| **Budget guard** | Every itinerary shows a per-person breakdown; plans are never presented over your cap — trailing stops get trimmed with an honest note |
+| **Budget guard** | Known cost estimates, including rideshare, stay within your cap. Stops with unknown costs or unaffordable estimates are removed with an explanation; actual prices, taxes, tips and fees may differ. |
 | **Edit by chat** | "Make dinner cheaper" → only dinner changes. "We finish by 10 PM" → same venues, new schedule. "Two vegetarians joined" → venues re-picked around diets |
 | **Stop controls** | 🔁 Swap this stop, 🔒 Lock it so it survives regeneration, 🎲 Regenerate |
 | **Map** | "Your night at a glance" mini-map on real coordinates + one-click Google Maps route with all stops |
@@ -124,8 +124,20 @@ the app runs in demo mode (the banner says so).
 ```bash
 cd backend
 pip install -r requirements-dev.txt
-python -m pytest -q          # 49 tests, offline (AI stubbed in tests)
+python -m pytest -q          # 72 tests, offline (AI stubbed in tests)
 ```
+
+Frontend regression tests exercise the actual form, Surprise Me, sequential
+edits, saving, and locks with a stubbed API:
+
+```bash
+cd frontend
+npm ci
+npm test                     # 4 UI regression tests
+npm run build
+```
+
+CI runs the frontend tests in `America/Denver` to catch local-date regressions.
 
 ## 🔑 Configuration (`backend/.env`)
 
@@ -139,7 +151,31 @@ python -m pytest -q          # 49 tests, offline (AI stubbed in tests)
 | `TTS_BASE_URL` + `TTS_API_KEY` (+ `TTS_MODEL`) | AI voice-over | Voice button shows a friendly note |
 | `ALLOWED_ORIGINS` | CORS for the frontend | dev defaults |
 
-Only `OPENAI_API_KEY` is needed for the app to feel fully "AI".
+For the class planning endpoint, configure all three together in `backend/.env`:
+`OPENAI_BASE_URL=http://dobolyi.com:9000/v1`,
+`OPENAI_MODEL=DeepSeek-V4-Flash-0731`, and your course `OPENAI_API_KEY`.
+If using a different provider, use its endpoint and a model it supports.
+The default URL is OpenAI while the default model is DeepSeek, so a key alone
+is not a complete configuration. Never commit a real key.
+
+With no planning AI configured, generation uses deterministic sample choices;
+chat, Swap and Regenerate require the planning AI to interpret instructions.
+Poster and voice-over need their separate settings above. Before presenting,
+test the configured endpoints and audibly play a voice-over in your browser.
+
+Each new itinerary includes the preferences that produced it. Chat changes
+persist into subsequent edits, saved nights and shared links. Unsaved form
+changes only affect a new generation. Older saved/shared plans remain supported
+using their stored preferences, but cannot recover constraints already lost
+by an older app version.
+
+Locks follow venue identity if stops move. Regeneration keeps locked venues
+without duplicating them; if time or budget makes a lock infeasible, the plan
+notes explain why it was removed. Unknown venue costs are not treated as free.
+
+Shared URLs use the address where the app is running. A `localhost` link
+requires the recipient to run the app at that address too; it is not a public
+hosted app. Copy for group chat works without the recipient running the app.
 
 ## 📡 API
 
@@ -164,7 +200,7 @@ workflow: see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 - Everyone needs their own `backend/.env` (copy `.env.example`, fill your own
   keys) — real keys are never committed.
-- Before pushing: `pytest` (49 tests) and `npm run build` must be green.
+- Before pushing: `pytest` (72 tests), frontend `npm test` (4 tests), and `npm run build` must be green.
 
 ## 📁 Project layout
 
@@ -184,7 +220,7 @@ final-project/
 │   │       ├── planner.py     # generate: picks → schedule → budget
 │   │       ├── editor.py      # apply conversational edits deterministically
 │   │       └── media.py       # Phase 7: FLUX poster + Chatterbox voice-over
-│   └── tests/                 # 49 tests (health, venues, travel, planner,
+│   └── tests/                 # 72 tests (health, venues, travel, planner,
 │                              #   editor, schemas, invariants)
 ├── frontend/
 │   ├── src/

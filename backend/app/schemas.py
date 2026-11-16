@@ -109,6 +109,7 @@ class Itinerary(BaseModel):
     demo: bool = False
     demo_note: str = ""
     edits: list[str] = []
+    request: PlanRequest | None = None  # preferences that produced this version
 
 
 class EditRequest(BaseModel):
